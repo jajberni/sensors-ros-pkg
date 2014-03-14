@@ -306,8 +306,8 @@ void SpatialNode::onSystemStatePacket(boost::archive::binary_iarchive& data)
 	enum {latitude=0, longitude, altitude, latStdDev=0, lonStdDev=4,altStdDev=8};
 	sensor_msgs::NavSatFix::Ptr gpsOut(new sensor_msgs::NavSatFix());
 	gpsOut->altitude = state.latLonHeight[altitude];
-	gpsOut->latitude = state.latLonHeight[latitude];
-	gpsOut->longitude = state.latLonHeight[longitude];
+	gpsOut->latitude = 180*state.latLonHeight[latitude]/M_PI;
+	gpsOut->longitude = 180*state.latLonHeight[longitude]/M_PI;
 	gpsOut->position_covariance.elems[latStdDev] = std::pow(state.latLonHeightStdDev[latitude],2);
 	gpsOut->position_covariance.elems[lonStdDev] = std::pow(state.latLonHeightStdDev[longitude],2);
 	gpsOut->position_covariance.elems[altStdDev] = std::pow(state.latLonHeightStdDev[altitude],2);
