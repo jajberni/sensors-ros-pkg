@@ -54,6 +54,8 @@ namespace labust
 				SystemState = 20,
 				VelocityStdDev = 25,
 				EulerStdDev = 26,
+				ExternalPosition = 45,
+				ExternalVelocity = 46,
 				PacketTimerPeriod = 180,
 				PacketsPeriod = 181,
 				SensorRanges = 184
@@ -68,6 +70,8 @@ namespace labust
 				SystemState = 100,
 				VelocityStdDev = 12,
 				EulerStdDev = 12,
+				ExternalPosition = 36,
+				ExternalVelocity = 24,
 				PacketTimerPeriod = 4,
 				PacketsPeriod = 7,
 				SensorRanges = 4
@@ -125,6 +129,18 @@ PP_LABUST_DEFINE_BOOST_SERIALIZED_STRUCT_CLEAN(
 		(uint8_t, acc)
 		(uint8_t, gyro)
 		(uint8_t, mag))
+
+PP_LABUST_DEFINE_BOOST_SERIALIZED_STRUCT_CLEAN(
+		(labust)(spatial),
+		ExternalPosition,
+		(vec3d, latLonHeight)
+		(vec3f, latLonHeightStdDev))
+
+PP_LABUST_DEFINE_BOOST_SERIALIZED_STRUCT_CLEAN(
+		(labust)(spatial),
+		ExternalVelocity,
+		(vec3f, velocity)
+		(vec3f, velocityStdDev))
 
 //SPATIALMESSAGES_HPP_
 #endif

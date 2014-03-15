@@ -45,6 +45,7 @@
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <geometry_msgs/TwistStamped.h>
+#include <geometry_msgs/TwistWithCovarianceStamped.h>
 
 #include <boost/bind.hpp>
 #include <boost/crc.hpp>
@@ -87,6 +88,13 @@ void SpatialNode::onInit()
 	gps = nh.advertise<sensor_msgs::NavSatFix>("fix",1);
 	vel = nh.advertise<geometry_msgs::TwistStamped>("ned_vel",1);
 
+	//Setup subscribers
+	bool sub;
+	ph.param("ext_gps",sub,false);
+	if (sub) extGps = nh.subscribe<sensor_msgs::NavSatFix>("ext_gps",1,&SpatialNode::onExternalGps,this);
+	ph.param("ext_dvl",sub,false);
+	if (sub) extDvl = nh.subscribe<geometry_msgs::TwistWithCovarianceStamped>("ext_gps",1,&SpatialNode::onExternalDvl,this);
+
 	if (setupOk)
 	{
 		using namespace labust::spatial;
@@ -109,8 +117,6 @@ void SpatialNode::onInit()
 void SpatialNode::configureSpatial()
 {
 	using namespace labust::spatial;
-	std::ostringstream out;
-	boost::archive::binary_oarchive dataSer(out, boost::archive::no_header);
 
 	enum {fs = 10};
 
@@ -122,11 +128,11 @@ void SpatialNode::configureSpatial()
 	PacketTimerPeriod p;
 	p.UTCSync = 100;
 	p.packetTimerPeriod = 10000;
-	dataSer << p;
-	this->sendToDevice(ID::PacketTimerPeriod, LEN::PacketTimerPeriod, out.str());
+	this->sendToDevice(ID::PacketTimerPeriod, LEN::PacketTimerPeriod, p);
 
 	//Set the packet timer period
-	out.str("");
+	std::ostringstream out;
+	boost::archive::binary_oarchive dataSer(out, boost::archive::no_header);
 	PacketsPeriod period;
 	period.clear = 1;
 	period.packetID = ID::SystemState;
@@ -140,11 +146,9 @@ void SpatialNode::configureSpatial()
 	this->sendToDevice(ID::PacketsPeriod, LEN::PacketsPeriod + 5*2, out.str());
 
 	//Set the sensor range
-	out.str("");
 	SensorRanges range;
 	range.acc = range.gyro = range.mag = 0;
-	dataSer << range;
-  this->sendToDevice(ID::SensorRanges, LEN::SensorRanges, out.str());
+  this->sendToDevice(ID::SensorRanges, LEN::SensorRanges, range);
 }
 
 void SpatialNode::sendToDevice(uint8_t id, uint8_t len, const std::string& data)
@@ -339,6 +343,36 @@ void SpatialNode::onAckPacket(boost::archive::binary_iarchive& data)
 	{
 		std::cout<<"Ack result: "<<int(ack.res)<<std::endl;
 	}
+}
+
+void SpatialNode::onExternalDvl(const geometry_msgs::TwistWithCovarianceStamped::ConstPtr& dvl)
+{
+	enum {x=0,y,z, xStdDev = 0, yStdDev = 4, zStdDev = 8};
+	labust::spatial::ExternalVelocity packet;
+	packet.velocity[x] = dvl->twist.twist.linear.x;
+	packet.velocity[y] = dvl->twist.twist.linear.y;
+	packet.velocity[z] = dvl->twist.twist.linear.z;
+
+	packet.velocityStdDev[x] = dvl->twist.covariance.elems[xStdDev];
+	packet.velocityStdDev[y] = dvl->twist.covariance.elems[yStdDev];
+	packet.velocityStdDev[z] = dvl->twist.covariance.elems[zStdDev];
+
+	this->sendToDevice(ID::ExternalVelocity, LEN::ExternalVelocity, packet);
+}
+
+void SpatialNode::onExternalGps(const sensor_msgs::NavSatFix::ConstPtr& gps)
+{
+	enum {latitude=0, longitude, altitude, latStdDev=0, lonStdDev=4,altStdDev=8};
+	labust::spatial::ExternalPosition packet;
+	packet.latLonHeight[latitude] = gps->latitude;
+	packet.latLonHeight[longitude] = gps->longitude;
+	packet.latLonHeight[altitude] = gps->altitude;
+
+	packet.latLonHeightStdDev[latStdDev] = gps->position_covariance.elems[latStdDev];
+	packet.latLonHeightStdDev[lonStdDev] = gps->position_covariance.elems[lonStdDev];
+	packet.latLonHeightStdDev[altStdDev] = gps->position_covariance.elems[altStdDev];
+
+	this->sendToDevice(ID::ExternalPosition, LEN::ExternalPosition, packet);
 }
 
 int main(int argc, char* argv[])

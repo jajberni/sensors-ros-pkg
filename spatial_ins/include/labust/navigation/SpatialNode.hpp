@@ -35,7 +35,10 @@
 #define SPATIALNODE_HPP_
 #include <labust/navigation/SpatialMessages.hpp>
 #include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
 
+#include <sensor_msgs/NavSatFix.h>
+#include <geometry_msgs/TwistWithCovarianceStamped.h>
 #include <ros/ros.h>
 
 #include <boost/asio.hpp>
@@ -88,6 +91,14 @@ namespace labust
 			 */
 			void statusUpdate(uint16_t systemStatus, uint16_t filterStatus);
 
+			template <class PacketType>
+			void sendToDevice(uint8_t id, uint8_t len, const PacketType& packet)
+			{
+				std::ostringstream out;
+				boost::archive::binary_oarchive dataSer(out, boost::archive::no_header);
+				dataSer << packet;
+				sendToDevice(id, len, out.str());
+			}
 			/**
 			 * Send spatial command.
 			 */
@@ -119,6 +130,19 @@ namespace labust
 			 * The ROS publisher.
 			 */
 			ros::Publisher imu, gps, vel;
+			/**
+			 * External inputs
+			 */
+			ros::Subscriber extGps, extDvl;
+
+			/**
+			 * External DVL handler.
+			 */
+			void onExternalDvl(const geometry_msgs::TwistWithCovarianceStamped::ConstPtr& dvl);
+			/**
+			 * External GPS handler.
+			 */
+			void onExternalGps(const sensor_msgs::NavSatFix::ConstPtr& gps);
 
 			/**
 			 * Hardware i/o service.
