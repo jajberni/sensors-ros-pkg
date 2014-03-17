@@ -56,6 +56,7 @@ namespace labust
 				EulerStdDev = 26,
 				ExternalPosition = 45,
 				ExternalVelocity = 46,
+				RTCMCorrections = 55,
 				PacketTimerPeriod = 180,
 				PacketsPeriod = 181,
 				SensorRanges = 184
