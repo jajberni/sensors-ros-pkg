@@ -90,7 +90,7 @@ namespace labust
 			{
 				geometry_msgs::TwistStamped::Ptr twist(
 						new geometry_msgs::TwistStamped());
-				twist->header.stamp=ros::Time();
+				twist->header.stamp=ros::Time::now();
 				twist->header.frame_id=frame_id;
 				//Condition speed mm/s -> m/s
 				float cond_vec[3];
