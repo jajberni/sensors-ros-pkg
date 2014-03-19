@@ -46,6 +46,7 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/TwistWithCovarianceStamped.h>
+#include <std_msgs/UInt8MultiArray.h>
 
 #include <boost/bind.hpp>
 #include <boost/crc.hpp>
@@ -61,7 +62,11 @@ using namespace labust::spatial;
 SpatialNode::SpatialNode():
 					io(),
 					port(io),
-					ringBuffer(headerSize,0)
+					ringBuffer(headerSize,0),
+					stateOk(false),
+					orientationOk(false),
+					navigationOk(false)
+					
 {
 	this->onInit();
 }
@@ -91,9 +96,11 @@ void SpatialNode::onInit()
 	//Setup subscribers
 	bool sub;
 	ph.param("ext_gps",sub,false);
-	if (sub) extGps = nh.subscribe<sensor_msgs::NavSatFix>("ext_gps",1,&SpatialNode::onExternalGps,this);
+	if (sub) extGps = nh.subscribe<sensor_msgs::NavSatFix>("fix_in",1,&SpatialNode::onExternalGps,this);
 	ph.param("ext_dvl",sub,false);
-	if (sub) extDvl = nh.subscribe<geometry_msgs::TwistWithCovarianceStamped>("ext_gps",1,&SpatialNode::onExternalDvl,this);
+	if (sub) extDvl = nh.subscribe<geometry_msgs::TwistWithCovarianceStamped>("dvl_in",1,&SpatialNode::onExternalDvl,this);
+	ph.param("use_rtcm",sub,false);
+	if (sub) extRtcm = nh.subscribe<std_msgs::UInt8MultiArray>("rtcm_in",1,&SpatialNode::onRTCM,this);
 
 	if (setupOk)
 	{
@@ -148,7 +155,7 @@ void SpatialNode::configureSpatial()
 	//Set the sensor range
 	SensorRanges range;
 	range.acc = range.gyro = range.mag = 0;
-  this->sendToDevice(ID::SensorRanges, LEN::SensorRanges, range);
+  	this->sendToDevice(ID::SensorRanges, LEN::SensorRanges, range);
 }
 
 void SpatialNode::sendToDevice(uint8_t id, uint8_t len, const std::string& data)
@@ -275,7 +282,10 @@ void SpatialNode::onData(const boost::system::error_code& e,
 
 void SpatialNode::statusUpdate(uint16_t systemStatus, uint16_t filterStatus)
 {
-
+	ROS_INFO("System status: %d, filter status: %d", systemStatus, filterStatus); 
+	stateOk = (systemStatus == 0);
+	orientationOk = filterStatus & 0x01;
+	navigationOk = filterStatus & 0x02;
 }
 
 void SpatialNode::onSystemStatePacket(boost::archive::binary_iarchive& data)
@@ -287,6 +297,8 @@ void SpatialNode::onSystemStatePacket(boost::archive::binary_iarchive& data)
 	using namespace labust::tools;
 	////////////////////////////////////////////////////////////////////////////////////
 	//Setup the imu data
+	if (stateOk && orientationOk)
+	{ 
 	enum {roll=0,pitch,yaw};
 	enum {rollStdDev=0, pitchStdDev=4, yawStdDev=8};
 	sensor_msgs::Imu::Ptr imuOut(new sensor_msgs::Imu());
@@ -304,9 +316,12 @@ void SpatialNode::onSystemStatePacket(boost::archive::binary_iarchive& data)
 	imuOut->header.frame_id = "imu_frame";
 	imuOut->header.stamp = ros::Time::now();
 	imu.publish(imuOut);
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
-	//Setup the imu data
+	//Setup the gps data
+	if (stateOk && navigationOk)
+	{
 	enum {latitude=0, longitude, altitude, latStdDev=0, lonStdDev=4,altStdDev=8};
 	sensor_msgs::NavSatFix::Ptr gpsOut(new sensor_msgs::NavSatFix());
 	gpsOut->altitude = state.latLonHeight[altitude];
@@ -318,6 +333,7 @@ void SpatialNode::onSystemStatePacket(boost::archive::binary_iarchive& data)
 	gpsOut->header.frame_id = "gps_frame";
 	gpsOut->header.stamp = ros::Time::now();
 	gps.publish(gpsOut);
+	}
 
 	////////////////////////////////////////////////////////////////////////////////////
 	//Setup the velocity data
@@ -339,9 +355,13 @@ void SpatialNode::onAckPacket(boost::archive::binary_iarchive& data)
 	labust::spatial::AckPacket ack;
 	data >> ack;
 
-  if (ack.res != 0)
+  	if (ack.res != 0)
 	{
 		std::cout<<"Ack result: "<<int(ack.res)<<std::endl;
+	}
+	else
+	{
+		std::cout<<"Packet acknowledged."<<std::endl;
 	}
 }
 
@@ -364,20 +384,29 @@ void SpatialNode::onExternalGps(const sensor_msgs::NavSatFix::ConstPtr& gps)
 {
 	enum {latitude=0, longitude, altitude, latStdDev=0, lonStdDev=4,altStdDev=8};
 	labust::spatial::ExternalPosition packet;
-	packet.latLonHeight[latitude] = gps->latitude;
-	packet.latLonHeight[longitude] = gps->longitude;
+	packet.latLonHeight[latitude] = M_PI*gps->latitude/180;
+	packet.latLonHeight[longitude] = M_PI*gps->longitude/180;
 	packet.latLonHeight[altitude] = gps->altitude;
 
-	packet.latLonHeightStdDev[latStdDev] = gps->position_covariance.elems[latStdDev];
-	packet.latLonHeightStdDev[lonStdDev] = gps->position_covariance.elems[lonStdDev];
-	packet.latLonHeightStdDev[altStdDev] = gps->position_covariance.elems[altStdDev];
+	packet.latLonHeightStdDev[latitude] = gps->position_covariance.elems[latStdDev];
+	packet.latLonHeightStdDev[longitude] = gps->position_covariance.elems[lonStdDev];
+	packet.latLonHeightStdDev[altitude] = gps->position_covariance.elems[altStdDev];
 
 	this->sendToDevice(ID::ExternalPosition, LEN::ExternalPosition, packet);
 }
 
+void SpatialNode::onRTCM(const std_msgs::UInt8MultiArray::ConstPtr& rtcm)
+{
+	std::ostringstream out;
+	boost::archive::binary_oarchive dataSer(out, boost::archive::no_header);
+	for(int i=0; i<rtcm->data.size(); ++i) out<<rtcm->data[i];
+
+	this->sendToDevice(ID::RTCMCorrections, rtcm->data.size(), out.str());
+}
+
 int main(int argc, char* argv[])
 {
-	ros::init(argc,argv,"navquest_node");
+	ros::init(argc,argv,"spatial_node");
 	SpatialNode node;
 	ros::spin();
 

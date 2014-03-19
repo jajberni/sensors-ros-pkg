@@ -65,6 +65,7 @@ struct SharedData
 	enum {imuPos=0,
 		gpsPos};
 	enum {lat=0, lon=1};
+	SharedData():transforms(2){};
 	ros::Publisher imuPub, gpsPub, imuinfo;
 	std::vector<geometry_msgs::TransformStamped> transforms;
 	tf2_ros::TransformBroadcaster broadcast;
@@ -91,7 +92,7 @@ void sync(SharedData& shared,
 
 		if (flag)
 		{
-			std::cout<<"Sync."<<std::endl;
+			//std::cout<<"Sync."<<std::endl;
 			boost::asio::async_read(port, boost::asio::buffer(&shared.buffer[SharedData::data_offset],
 					SharedData::msg_size-SharedData::data_offset),
 					boost::bind(&handleIncoming,
@@ -112,10 +113,10 @@ void handleIncoming(SharedData& shared,
 		boost::asio::serial_port& port,
 		const boost::system::error_code& error, const size_t& transferred)
 {
-	std::cout<<"Got stuff."<<std::endl;
+	//std::cout<<"Got stuff."<<std::endl;
 	if (!error && (transferred == (SharedData::msg_size-SharedData::data_offset)))
 	{
-		std::cout<<"Processing."<<std::endl;
+		//std::cout<<"Processing."<<std::endl;
 		unsigned char calc = 0;
 		for (size_t i=SharedData::data_offset; i<SharedData::msg_size-1; ++i){calc^=shared.buffer[i];};
 

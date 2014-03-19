@@ -38,6 +38,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 
 #include <sensor_msgs/NavSatFix.h>
+#include <std_msgs/UInt8MultiArray.h>
 #include <geometry_msgs/TwistWithCovarianceStamped.h>
 #include <ros/ros.h>
 
@@ -133,7 +134,7 @@ namespace labust
 			/**
 			 * External inputs
 			 */
-			ros::Subscriber extGps, extDvl;
+			ros::Subscriber extGps, extDvl, extRtcm;
 
 			/**
 			 * External DVL handler.
@@ -143,6 +144,10 @@ namespace labust
 			 * External GPS handler.
 			 */
 			void onExternalGps(const sensor_msgs::NavSatFix::ConstPtr& gps);
+			/**
+			 * RTCM corrections.
+			 */
+			void onRTCM(const std_msgs::UInt8MultiArray::ConstPtr& rtcm);
 
 			/**
 			 * Hardware i/o service.
@@ -176,6 +181,11 @@ namespace labust
 			 * The handler map.
 			 */
 			HandlerMap handler;
+			/**
+			 * The heading and position flags.
+			 */
+			bool stateOk, orientationOk, navigationOk;
+			
 
 			/**
 			 * The euler and velocity covariance.
