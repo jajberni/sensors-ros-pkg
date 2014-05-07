@@ -61,7 +61,7 @@ BOOST_CLASS_IMPLEMENTATION(labust::tritech::vec3int16 , boost::serialization::pr
 
 ///\todo Document the USBLData and USBLDataV2 classes.
 PP_LABUST_DEFINE_BOOST_SERIALIZED_STRUCT_CLEAN((labust)(tritech),USBLData,
-			(size_t, time_ms)
+			(uint32_t, time_ms)
 			(uint8_t,reply_validity)
 			(vec3f, doa)
 			(float, RMS)
@@ -69,7 +69,7 @@ PP_LABUST_DEFINE_BOOST_SERIALIZED_STRUCT_CLEAN((labust)(tritech),USBLData,
 			(float, usblRangeQuality)
 			(vec4f, reliability)
 			(vec3d, attitude)			
-			(bool, isTransponder)
+			(uint8_t, isTransponder)
 			(uint16_t, unitID)
 			(vec3d, relativePos)
 			(vec5f, sigma)
@@ -82,7 +82,7 @@ PP_LABUST_DEFINE_BOOST_SERIALIZED_STRUCT_CLEAN((labust)(tritech),USBLData,
 PP_LABUST_DEFINE_BOOST_SERIALIZED_STRUCT_CLEAN((labust)(tritech),AttSenData,
 		 (uint8_t, cmd)
 		 (uint32_t, time)
-	     (vec3int16, acc)
+	   (vec3int16, acc)
 		 (vec3int16, mag)
 		 (vec3int16, gyro)
 		 (int16_t, pressure)
