@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package>
+  <name>diver_net</name>
+  <version>0.0.1</version>
+  <description>
+      The package contains the driver for the IMU network used to
+      measure diver kinematics. 
+  </description>
+
+  <maintainer email="dula.nad@gmail.com">Gyula Nagy</maintainer>
+  <license>BSD</license>
+  <!-- <url type="website">http://wiki.ros.org/diver_net</url> -->
+  <author email="dula.nad@gmail.com">Gyula Nagy</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>tf2_ros</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>snippets</build_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>tf2_ros</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+
+</package>
