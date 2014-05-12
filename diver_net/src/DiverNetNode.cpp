@@ -56,7 +56,10 @@ DiverNetNode::DiverNetNode():
 							port(io),
 							ringBuffer(headerSize,0),
 							nodeCount(20),
-							listener(tfbuffer)
+							listener(tfbuffer),
+							offset(Eigen::MatrixXd::Zero(nodeCount,3)),
+							zeroState(Eigen::MatrixXd::Zero(nodeCount,3)),
+							currentMeas(Eigen::MatrixXd::Zero(nodeCount,3))
 {
 	this->onInit();
 }
@@ -83,6 +86,8 @@ void DiverNetNode::onInit()
 	rpyData = nh.advertise<std_msgs::Float64MultiArray>("rpy_data",1);
 	jointsPub = nh.advertise<sensor_msgs::JointState>("joint_states",1);
 
+	netInit = nh.subscribe<std_msgs::Bool>("net_init",1,&DiverNetNode::onNetInit, this);
+
 	if (setupOk)
 	{
 		ROS_INFO("DiverNet is connected.");
@@ -101,7 +106,59 @@ void DiverNetNode::configureNet()
 	ph.param("node_count", nodeCount, nodeCount);
 	rawBuffer.resize(nodeCount * dataPerNode + crc + adc);
 	//Connect imu number with joint
+	///////////////////////////////////////////////
+	//Should be a configuration option or from a urdf file
+	names.push_back("right_shoulder");
+	names.push_back("right_upper_arm");
+	names.push_back("right_forearm");
+	names.push_back("head"); //Inverter - head is number 4 and right hand is number 5 actually
+	names.push_back("right_hand");
+
+	names.push_back("left_shoulder");
+	names.push_back("left_upper_arm");
+	names.push_back("left_forearm");
+	names.push_back("left_hand");
+	names.push_back("upper_body");
+
+	names.push_back("placehodler_1");
+
+	names.push_back("left_foot");
+	names.push_back("left_calf");
+	names.push_back("left_thigh");
+	names.push_back("lower_back");
+
+	names.push_back("placeholder_2");
+
+	names.push_back("right_thigh");
+	names.push_back("right_calf");
+	names.push_back("right_foot");
+
+	names.push_back("placeholder_3");
+	///////////////////////////////////////////
+	//Setup zero state - Should be a configuration option
+	std::cout<<"Size:"<<zeroState.rows()<<std::endl;
+	zeroState<<M_PI, 0.0, M_PI/2, 	//"right_shoulder"
+				M_PI/2, 0.0, 0.0,					//"right_upper_arm"
+				0.0, 0.0, 0.0,						//"right_forearm"
+				0.0, -M_PI/2, M_PI,				//"head"
+				0.0, 0.0, 0.0,						//"right_hand"
+				M_PI, 0.0, -M_PI/2, 			//"left_shoulder"
+			  M_PI/2, 0.0, 0.0,					//"left_upper_arm"
+				0.0, 0.0, 0.0, 						//"left_forearm"
+				0.0, 0.0, 0.0,						//"left_hand"
+				-M_PI, 0.0, -0.0,				  //"upper_body"
+				M_PI/2, 0.0, 0.0,					//"placehodler_1"
+				0.0, -M_PI/2, 0.0,					//"left_foot"
+				M_PI/2, 0.0, 0.0,					//"left_calf"
+				M_PI/2, 0.0, -M_PI,				//"left_thigh"
+				0.0, -M_PI/2, 0.0,			  //"lower_back"
+				0.0, 0.0, 0.0,						//"placeholder_2"
+				-M_PI/2, 0.0, -M_PI,			//"right_thigh"
+				-M_PI/2, 0.0, 0.0,				//"right_calf"
+				0.0, -M_PI/2, 0.0,					//"right_foot"
+				0.0, 0.0, 0.0;						//"placeholder_3"
 	//Setup acc,gyro,mag ranges
+	//0.0, 1.5707963267948966, 0.0, 0.0, 1.5707963267948966, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.5707963267948966, 0.0, -0.0012566370614357503, 1.5707963267948966, 0.0, 0.0, 0.0, 0.0, 1.5707963267948966, 0.0, 0.0, 1.5707963267948966, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 }
 
 void DiverNetNode::start_receive()
@@ -248,6 +305,16 @@ void DiverNetNode::onData(const boost::system::error_code& e,
 	this->start_receive();
 }
 
+void DiverNetNode::onNetInit(const std_msgs::Bool::ConstPtr& init)
+{
+	if (init->data)
+	{
+		boost::mutex::scoped_lock l(dataMux);
+		std::cout<<"calib size:"<<zeroState.cols()<<", "<<currentMeas.cols();
+		offset = zeroState - currentMeas;
+	}
+}
+
 void DiverNetNode::publishJoints(Eigen::MatrixXd& raw)
 {
 	enum {ax,ay,az,mx,my,mz,gx,gy,gz};
@@ -261,33 +328,7 @@ void DiverNetNode::publishJoints(Eigen::MatrixXd& raw)
 	joints->velocity.resize(nodeCount * 3);
 	joints->effort.resize(nodeCount * 3);
 
-
-	std::vector<std::string> names;
-	names.push_back("right_blade");
-	names.push_back("right_upper_arm");
-	names.push_back("right_forearm");
-	names.push_back("right_hand");
-	names.push_back("head");
-
-	names.push_back("left_blade");
-	names.push_back("left_upper_arm");
-	names.push_back("left_forearm");
-	names.push_back("left_hand");
-	names.push_back("upper_body");
-
-	names.push_back("placehodler_1");
-
-	names.push_back("left_thigh");
-	names.push_back("left_calf");
-	names.push_back("left_leg");
-	names.push_back("lower_back");
-
-	names.push_back("right_thigh");
-	names.push_back("right_calf");
-	names.push_back("right_leg");
-
-	names.push_back("placeholder_2");
-	names.push_back("placeholder_3");
+	std::vector<geometry_msgs::TransformStamped> transforms(nodeCount);
 
 	for (int i=0; i<nodeCount; ++i)
 	{
@@ -300,7 +341,7 @@ void DiverNetNode::publishJoints(Eigen::MatrixXd& raw)
 		std::cout<<", gmax: "<<gmax<<std::endl;*/
 
 		double roll = atan2(curraw(ay), curraw(az));
-		double pitch = atan2(curraw(ax), sqrt(curraw(ay)*curraw(ay) + curraw(az)*curraw(az)));
+		double pitch = -atan2(curraw(ax), sqrt(curraw(ay)*curraw(ay) + curraw(az)*curraw(az)));
 		double hx = curraw(mx)*cos(pitch)+curraw(my)*sin(pitch)*sin(roll)+curraw(mz)*cos(roll)*sin(pitch);
 		double hy = curraw(my)*cos(roll)-curraw(mz)*sin(roll);
 		double yaw = atan2(-hy, hx);
@@ -308,49 +349,44 @@ void DiverNetNode::publishJoints(Eigen::MatrixXd& raw)
 		rpy->data[3*i+1] = pitch;
 		rpy->data[3*i+2] = yaw;
 
-		if (i<3)
-		{
-			/*joints->name[3*i] = names[i] + "_x";
-			joints->name[3*i+1] = names[i] + "_y";
-			joints->name[3*i+2] = names[i] + "_z";
-			joints->position[3*i] = roll;
-			joints->position[3*i+1] = pitch;
-			joints->position[3*i+2] = yaw;*/
-
-
-			geometry_msgs::TransformStamped transform;
-			transform.transform.translation.x = 0;
-			transform.transform.translation.y = 0;
-			transform.transform.translation.z = 0;
-			labust::tools::quaternionFromEulerZYX(roll, pitch, yaw,
-					transform.transform.rotation);
-			transform.child_frame_id = "abs_" + names[i];
-			transform.header.frame_id = "local";
-			transform.header.stamp = ros::Time::now();
-			broadcast.sendTransform(transform);
-		}
+		transforms[i].transform.translation.x = 0;
+		transforms[i].transform.translation.y = 0;
+		transforms[i].transform.translation.z = 0;
+		labust::tools::quaternionFromEulerZYX(roll, pitch, yaw,
+				transforms[i].transform.rotation);
+		transforms[i].child_frame_id = "abs_" + names[i];
+		transforms[i].header.frame_id = "local";
+		transforms[i].header.stamp = ros::Time::now();
 	}
+
+	broadcast.sendTransform(transforms);
 
 	for (int i=0; i<nodeCount; ++i)
 	{
-		if (i<3)
+		if (i<20)
 		{
 			std::string parent;
 			double roll(0),pitch(0),yaw(0);
 			if (tfbuffer._getParent(names[i]+"_2", ros::Time(0), parent))
 			{
-				std::cout<<"found parent:"<<parent<<std::endl;
+				std::cout<<"Found parent of "<<names[i]+"_2"<<" as "<<parent<<std::endl;
 				geometry_msgs::TransformStamped trans;
 				if (std::find(names.begin(), names.end(), parent) != names.end())
 				{
 					 std::cout<<"cross transform"<<parent<<std::endl;
-					 //trans = tfbuffer.lookupTransform("abs_"+names[i], "abs_"+parent, ros::Time(0));
-					 trans = tfbuffer.lookupTransform("abs_"+parent, "abs_"+names[i], ros::Time(0));
+					 if (tfbuffer.canTransform("abs_"+parent, "abs_"+names[i], ros::Time(0)))
+					 {
+						 //trans = tfbuffer.lookupTransform("abs_"+names[i], "abs_"+parent, ros::Time(0));
+						 trans = tfbuffer.lookupTransform("abs_"+parent, "abs_"+names[i], ros::Time(0));
+					 }
 				}
 				else
 				{
-					//trans = tfbuffer.lookupTransform("abs_"+names[i], "local", ros::Time(0));
-					trans = tfbuffer.lookupTransform("local", "abs_"+names[i], ros::Time(0));
+					if (tfbuffer.canTransform("local", "abs_"+names[i], ros::Time(0)))
+					{
+						//trans = tfbuffer.lookupTransform("abs_"+names[i], "local", ros::Time(0));
+						trans = tfbuffer.lookupTransform("local", "abs_"+names[i], ros::Time(0));
+					}
 				}
 				labust::tools::eulerZYXFromQuaternion(trans.transform.rotation,
 						roll, pitch, yaw);
@@ -359,9 +395,26 @@ void DiverNetNode::publishJoints(Eigen::MatrixXd& raw)
 			joints->name[3*i] = names[i] + "_x";
 			joints->name[3*i+1] = names[i] + "_y";
 			joints->name[3*i+2] = names[i] + "_z";
-			joints->position[3*i] = roll;
-			joints->position[3*i+1] = pitch;
-			joints->position[3*i+2] = yaw;
+			boost::mutex::scoped_lock l(dataMux);
+			joints->position[3*i] = roll + offset(i,0);
+			joints->position[3*i+1] = pitch + offset(i,1);
+			joints->position[3*i+2] = yaw + offset(i,2);
+			/*joints->position[3*i] = zeroState(i,0);
+			joints->position[3*i+1] = zeroState(i,1);
+			joints->position[3*i+2] = zeroState(i,2);*/
+			currentMeas(i,0) = roll;
+			currentMeas(i,1) = pitch;
+			currentMeas(i,2) = yaw;
+			l.unlock();
+		}
+		else
+		{
+			joints->name[3*i] = names[i] + "_x";
+			joints->name[3*i+1] = names[i] + "_y";
+			joints->name[3*i+2] = names[i] + "_z";
+			joints->position[3*i] = 0;
+			joints->position[3*i+1] = 0;
+			joints->position[3*i+2] = 0;
 		}
 	}
 

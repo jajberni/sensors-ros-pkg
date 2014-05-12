@@ -41,6 +41,8 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2/buffer_core.h>
+#include <sensor_msgs/JointState.h>
+#include <std_msgs/Bool.h>
 
 #include <Eigen/Dense>
 
@@ -51,8 +53,10 @@ namespace labust
 	namespace sensors
 	{
 		/**
-		 * The class implements the Spatial INS driver.
+		 * The class implements the Diver net driver.
 		 * \todo Implement additional messages
+		 * \todo Split acquisition and processing into two nodes.
+		 * \todo Add a Diver Net imu class that will contain name, id, calibration and init options.
 		 */
 		class DiverNetNode
 		{
@@ -106,9 +110,18 @@ namespace labust
 			void publishJoints(Eigen::MatrixXd& raw);
 
 			/**
+			 * Handle net init.
+			 */
+			void onNetInit(const std_msgs::Bool::ConstPtr& init);
+
+			/**
 			 * The ROS publisher.
 			 */
 			ros::Publisher rawData, jointsPub, rpyData;
+			/**
+			 * Subscriber
+			 */
+			ros::Subscriber netInit;
 			/**
 			 * Hardware i/o service.
 			 */
@@ -146,12 +159,22 @@ namespace labust
 			 */
 			tf2_ros::TransformListener listener;
 			/**
-			 * The raw data
-			 */
-			/**
 			 * The number of nodes.
 			 */
 			int nodeCount;
+			/**
+			 * The calibration and zero state values.
+			 */
+			Eigen::MatrixXd offset, zeroState, currentMeas;
+			/**
+			 * Joint names connected to IMU numbers.
+			 * \todo Consider if a map is better option ?
+			 */
+			std::vector<std::string> names;
+			/**
+			 * Data mutex.
+			 */
+			boost::mutex dataMux;
 		};
 	}
 }
