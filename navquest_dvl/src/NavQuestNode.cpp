@@ -99,6 +99,7 @@ void NavQuestNode::onInit()
 		//Advertise beam data
 		beam_pub["velo_rad"].reset(new NavQuestBP(nh, "velo_rad"));
 		beam_pub["wvelo_rad"].reset(new NavQuestBP(nh, "wvelo_rad"));
+		beam_pub["altitude_beams"].reset(new NavQuestBP(nh, "altitude_beams"));
 		speed_pub["velo_instrument"].reset(
 				new TwistPublisher(nh, "velo_instrument", "dvl_frame"));
 		speed_pub["velo_earth"].reset(
@@ -170,55 +171,6 @@ void NavQuestNode::publishDvlData(const NQRes& data)
 	testDVL = testDVL && (data.velo_instrument[1] == data.velo_instrument[2]);
 	testDVL = testDVL && (data.velo_instrument[2] == 0);
 
-	//Data validity
-	bool beamValidity = true;
-	for (int i=0; i<4; ++i)
-	{
-	  beamValidity = beamValidity && (data.beam_status[i] == 1);
-	  //ROS_INFO("Beam validity %d: %d", i, data.beam_status[i]);
-	  //ROS_INFO("Water vel credit %d: %f", i, data.wvelo_credit[i]);
-	}
-
-	if (testDVL)
-	{
-	  ROS_INFO("All zero dvl. Ignore measurement.");
-	  return;
-	}
-	
-	if (!beamValidity)
-	{
-	  //ROS_INFO("One or more beams are invalid. Ignore measurement: %f %f", data.velo_instrument[0]/1000, data.velo_instrument[1]/1000);
-	  return;
-	}
-	else
-	{
-	  ROS_INFO("Beams are valid. Accept measurement: %f %f", data.velo_instrument[0]/1000, data.velo_instrument[1]/1000);
-	}
-
-	(*beam_pub["velo_rad"])(data.velo_rad);
-	(*beam_pub["wvelo_rad"])(data.wvelo_rad);
-	(*speed_pub["velo_instrument"])(data.velo_instrument);
-	(*speed_pub["velo_earth"])(data.velo_earth);
-	(*speed_pub["water_velo_instrument"])(data.water_velo_instrument);
-	(*speed_pub["water_velo_earth"])(data.water_velo_earth);
-
-	//Bottom lock flag
-	enum{valid_flag=3};
-	bool water_lock= (data.velo_instrument[valid_flag]==2) || (data.velo_earth[valid_flag]==2);
-	bool valid=data.velo_instrument[valid_flag] && data.velo_earth[valid_flag];
-	std_msgs::Bool bottom_lock;
-	bottom_lock.data = !water_lock && valid;
-	lock.publish(bottom_lock);
-	//ROS_INFO("Has bottom lock %d", bottom_lock.data);
-
-	//Altitude
-	if (data.altitude_estimate > 0)
-	{
-		std_msgs::Float32Ptr alt(new std_msgs::Float32());
-		alt->data = data.altitude_estimate;
-		altitude.publish(alt);
-	}
-
 	//TF frame
 	//Either use a fixed rotation here or the DVL measurements
 	enum {roll=0, pitch, yaw};
@@ -253,6 +205,93 @@ void NavQuestNode::publishDvlData(const NQRes& data)
 	rpy->pitch = labust::math::wrapRad(data.rph[pitch]/180*M_PI);
 	rpy->yaw = labust::math::wrapRad(data.rph[yaw]/180*M_PI);
 	imuPub.publish(rpy);
+
+	if (error_code(data) !=0) return;
+
+	//Data validity
+	bool beamValidity = true;
+	for (int i=0; i<4; ++i)
+	{
+	  beamValidity = beamValidity && (data.beam_status[i] == 1);
+	  //ROS_INFO("Beam validity %d: %d", i, data.beam_status[i]);
+	  //ROS_INFO("Water vel credit %d: %f", i, data.wvelo_credit[i]);
+	}
+
+	if (testDVL)
+	{
+	  ROS_INFO("All zero dvl. Ignore measurement.");
+	  return;
+	}
+	
+	if (!beamValidity)
+	{
+	  //ROS_INFO("One or more beams are invalid. Ignore measurement: %f %f", data.velo_instrument[0]/1000, data.velo_instrument[1]/1000);
+	  return;
+	}
+	else
+	{
+	  ROS_INFO("Beams are valid. Accept measurement: %f %f", data.velo_instrument[0]/1000, data.velo_instrument[1]/1000);
+	}
+
+	(*beam_pub["velo_rad"])(data.velo_rad);
+	(*beam_pub["wvelo_rad"])(data.wvelo_rad);
+	(*beam_pub["altitude_beams"])(data.v_altitude);
+	(*speed_pub["velo_instrument"])(data.velo_instrument);
+	(*speed_pub["velo_earth"])(data.velo_earth);
+	(*speed_pub["water_velo_instrument"])(data.water_velo_instrument);
+	(*speed_pub["water_velo_earth"])(data.water_velo_earth);
+
+	//Bottom lock flag
+	enum{valid_flag=3};
+	bool water_lock= (data.velo_instrument[valid_flag]==2) || (data.velo_earth[valid_flag]==2);
+	bool valid=data.velo_instrument[valid_flag] && data.velo_earth[valid_flag];
+	std_msgs::Bool bottom_lock;
+	bottom_lock.data = !water_lock && valid;
+	lock.publish(bottom_lock);
+	//ROS_INFO("Has bottom lock %d", bottom_lock.data);
+
+	//Altitude
+	if (data.altitude_estimate > 0)
+	{
+		std_msgs::Float32Ptr alt(new std_msgs::Float32());
+		alt->data = data.altitude_estimate;
+		altitude.publish(alt);
+	}
+
+	//TF frame
+	//Either use a fixed rotation here or the DVL measurements
+	/*enum {roll=0, pitch, yaw};
+	geometry_msgs::TransformStamped transform;
+	///\todo Parametrize this position value of the DVL frame!!!
+	transform.transform.translation.x = 0;
+	transform.transform.translation.y = 0;
+	transform.transform.translation.z = 0;
+	transform.child_frame_id = "dvl_frame";
+	transform.header.frame_id = "base_link";
+	transform.header.stamp = ros::Time::now();
+
+	if (useFixed)
+	{
+		labust::tools::quaternionFromEulerZYX(0,0,base_orientation,
+				transform.transform.rotation);
+		broadcast.sendTransform(transform);
+	}
+	else
+	{
+		Eigen::Quaternion<float> quat;
+		labust::tools::quaternionFromEulerZYX(labust::math::wrapRad(data.rph[roll]/180*M_PI),
+				labust::math::wrapRad(data.rph[pitch]/180*M_PI),
+				labust::math::wrapRad(data.rph[yaw]/180*M_PI + magnetic_declination),
+				transform.transform.rotation);
+		broadcast.sendTransform(transform);
+	}
+
+	//RPY
+	auv_msgs::RPY::Ptr rpy(new auv_msgs::RPY());
+	rpy->roll = labust::math::wrapRad(data.rph[roll]/180*M_PI);
+	rpy->pitch = labust::math::wrapRad(data.rph[pitch]/180*M_PI);
+	rpy->yaw = labust::math::wrapRad(data.rph[yaw]/180*M_PI);
+	imuPub.publish(rpy);*/
 }
 
 void NavQuestNode::conditionDvlData(const NQRes& data)
@@ -276,7 +315,8 @@ void NavQuestNode::onDvlData(const boost::system::error_code& e,
 			labust::archive::delimited_iarchive ia(is);
 			ia>>dvl_data;
 
-			if (error_code(dvl_data) == 0) publishDvlData(dvl_data);
+			//if (error_code(dvl_data) == 0) publishDvlData(dvl_data);
+			publishDvlData(dvl_data);
 			ROS_INFO("Calculated checksum:calc=%d, recvd=%d", chk, dvl_data.checksum);
 
 			//ROS_INFO("DVL decoded: header:%s, error:%s.",
