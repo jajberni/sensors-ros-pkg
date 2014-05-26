@@ -64,7 +64,7 @@ namespace labust
 						new std_msgs::Float32MultiArray());
 				//Condition speed mm/s -> m/s
 				float cond_vec[N];
-				for (int i=0; i<3;++i) cond_vec[i]=vec[i]/1000;
+				for (int i=0; i<N;++i) cond_vec[i]=vec[i]/1000;
 				array->data.assign(&cond_vec[0],&cond_vec[N]);
 				//array->data.push_back(quality);
 				pub.publish(array);
