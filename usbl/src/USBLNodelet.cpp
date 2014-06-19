@@ -247,7 +247,8 @@ void USBLNodelet::sendUSBLPkg()
 		if (msg_out[0] == 48) mmsg.msgType = labust::tritech::mmcGetRangeTxRxBits48;
 		//mmsg.data[0] = 48;
 		//for (int i=0;i<msg_out.size();++i) mmsg.data[i+1] = msg_out[i];
-		for (int i=0;i<msg_out.size();++i) mmsg.data[i] = msg_out[i];
+		std::copy(msg_out.begin(), msg_out.end(), mmsg.data.begin());
+		//for (int i=0;i<msg_out.size();++i) mmsg.data[i] = msg_out[i];
 		msg_out.clear();
 	}
 
