@@ -155,7 +155,7 @@ void SpatialNode::configureSpatial()
 	//Set the sensor range
 	SensorRanges range;
 	range.acc = range.gyro = range.mag = 0;
-  	this->sendToDevice(ID::SensorRanges, LEN::SensorRanges, range);
+  this->sendToDevice(ID::SensorRanges, LEN::SensorRanges, range);
 }
 
 void SpatialNode::sendToDevice(uint8_t id, uint8_t len, const std::string& data)
