@@ -46,7 +46,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 
-void onMsg(labust::tritech::MTDevice* modem, const std_msgs::String::ConstPtr msg)
+void onMsg(labust::tritech::MTDevice& modem, const std_msgs::String::ConstPtr msg)
 {
 	using namespace labust::tritech;
 
@@ -59,53 +59,38 @@ void onMsg(labust::tritech::MTDevice* modem, const std_msgs::String::ConstPtr ms
 	MMCMsg mmsg;
 	mmsg.msgType = labust::tritech::mmcSetRepBits;
 
-	switch (msg->data.size())
-	{
-	case 0: mmsg.data[0] = 0; break;
-	case 1: mmsg.data[0] = 8; break;
-	case 2: mmsg.data[0] = 16; break;
-	case 3: mmsg.data[0] = 24; break;
-	case 4: mmsg.data[0] = 32; break;
-	case 5: mmsg.data[0] = 40; break;
-	case 6: mmsg.data[0] = 48; break;
-	default:break;
-	}
+	///\todo Consider if network byte order is needed ?
+	//for (int i=0;i<6;++i) 	mmsg.data[i+1] = msg->data[i];
+	std::copy(msg->data.begin(), msg->data.end(), mmsg.data.begin());
 
-	for (int i=0;i<6;++i) 	mmsg.data[i+1] = msg->data[i];
-
-	std::ostream out();
 	boost::archive::binary_oarchive ar(*tmsg->data, boost::archive::no_header);
 	ar<<mmsg;
+	modem.send(tmsg);
 
-	modem->send(tmsg);
-
-	std::cout<<"send message."<<std::endl;
+	ROS_INFO("Send message.");
 };
 
-void onData(ros::Publisher* modemOut, labust::tritech::MTMsgPtr tmsg)
+void onData(ros::Publisher& modemOut, labust::tritech::MTMsgPtr tmsg)
 {
 	using namespace labust::tritech;
-	//static DiverMsg msg;
 
 	boost::archive::binary_iarchive dataSer(*tmsg->data, boost::archive::no_header);
 	MMCMsg data;
 	dataSer>>data;
 
-	//uint64_t* pt = reinterpret_cast<uint64_t*>(&data.data[1]);
-	//msg.unpack<DiverMsg::AutoTopside>(*pt);
+	ROS_INFO("Received USBL message type %d.", data.msgType);
 
-	ROS_INFO("Received USBL message type %d. Bits=%d",data.msgType);
-
+	/*
 	std::cout<<"Received datammcRangedRepByte package:";
 	for (int i=0; i<data.data.size(); ++i)
 	{
 		std::cout<<int(data.data[i])<<",";
 	}
-	std::cout<<std::endl;
+	std::cout<<std::endl;*/
 
 	std_msgs::String modem;
 	modem.data.assign(data.data.begin(), data.data.end());
-	modemOut->publish(modem);
+	modemOut.publish(modem);
 }
 
 int main(int argc, char* argv[])
@@ -119,17 +104,16 @@ int main(int argc, char* argv[])
 	std::string port("/dev/ttyUSB9");
 	int baud(57600);
 
-	ph.param("port",port,port);
-	ph.param("baud",baud,baud);
+	ph.param("PortName",port,port);
+	ph.param("Baud",baud,baud);
 
 	MTDevice modem(port,baud);
 
-	ros::Subscriber inMsg = nh.subscribe<std_msgs::String>(
-			"modem_send",	1,boost::bind(&onMsg,&modem,_1));
-	ros::Publisher pub = nh.advertise<std_msgs::String>("modem_rcvd",	1);
+	ros::Subscriber inMsg = nh.subscribe<std_msgs::String>("modem_out",	1,boost::bind(&onMsg,boost::ref(modem),_1));
+	ros::Publisher pub = nh.advertise<std_msgs::String>("modem_in",	1);
 
 	MTDevice::HandlerMap map;
-	map[MTMsg::mtMiniModemData] = boost::bind(&onData,&pub, _1);
+	map[MTMsg::mtMiniModemData] = boost::bind(&onData,boost::ref(pub), _1);
 	modem.registerHandlers(map);
 
 	ros::spin();
