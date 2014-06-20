@@ -88,11 +88,15 @@ ObjectDetectorNode::~ObjectDetectorNode() {}
 int main(int argc, char** argv) {
   ros::init(argc, argv, "object_detector_node");
   //ObjectDetectorNode od;
+
+  // Bosch camera temporary
+  ros::Rate r(5);
+
   cv::Mat image;
   ObjectDetector object_detector;
   cv::namedWindow("Test");
   const std::string bosch_camera_address = "http://192.168.1.5/snap.jpg";
-  while (true) {
+  while (ros::ok()) {
     cv::VideoCapture vcap;
     vcap.open(bosch_camera_address);
     cv::Point2f center;
@@ -104,11 +108,12 @@ int main(int argc, char** argv) {
     } else {
       object_detector.detectObjectByColor(image, center, area);
       cv::circle(image, center, sqrt(area)/M_PI/2, cv::Scalar(0, 0, 255), -1);
-      cv::imshow("Test", image);
+      //cv::imshow("Test", image);
     }
-    if(cv::waitKey(200) >= 0) break;
+    //if(cv::waitKey(200) >= 0) break;
+    ros::spinOnce();
+    r.sleep();
   }   
   //vcap.release();
-  //ros::spin();
   return 0;
 }
