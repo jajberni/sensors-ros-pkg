@@ -90,15 +90,16 @@ int main(int argc, char** argv) {
   //ObjectDetectorNode od;
 
   // Bosch camera temporary
+  ros::Time::init();
   ros::Rate r(5);
 
   cv::Mat image;
   ObjectDetector object_detector;
-  cv::namedWindow("Test");
+  //cv::namedWindow("Test");
   const std::string bosch_camera_address = "http://192.168.1.5/snap.jpg";
   while (ros::ok()) {
     cv::VideoCapture vcap;
-    vcap.open(bosch_camera_address);
+    vcap.open(0);//bosch_camera_address);
     cv::Point2f center;
     double area;
 

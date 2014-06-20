@@ -51,7 +51,7 @@ ObjectDetector::ObjectDetector() {
 }
 
 void ObjectDetector::createOpenCvWindow() {
-  cv::namedWindow(OPENCV_WINDOW);
+  //cv::namedWindow(OPENCV_WINDOW);
 
   iLowH = 0;
   iHighH = 179;
@@ -62,6 +62,7 @@ void ObjectDetector::createOpenCvWindow() {
   iLowV = 0;
   iHighV = 255;
 
+  /*
   // Create trackbars in "Control" window
   // Hue (0-179) 
   cvCreateTrackbar("LowH", "Control", &iLowH, 179); 
@@ -72,7 +73,7 @@ void ObjectDetector::createOpenCvWindow() {
   // Value (0-255)
   cvCreateTrackbar("LowV", "Control", &iLowV, 255); 
   cvCreateTrackbar("HighV", "Control", &iHighV, 255);
-  cv::waitKey(30);
+  cv::waitKey(30);*/
 }
 
 ObjectDetector::~ObjectDetector() {
@@ -88,7 +89,7 @@ void ObjectDetector::detectObjectByColor(const cv::Mat image_bgr, cv::Point2f &c
   cv::Mat image_hsv, image_thresholded;
   cv::cvtColor(image_bgr, image_hsv, CV_BGR2HSV);
   cv::inRange(image_hsv, cv::Scalar(iLowH, iLowS, iLowV), cv::Scalar(iHighH, iHighS, iHighV), image_thresholded); 
-  cv::imshow(OPENCV_WINDOW2, image_thresholded);
+  //cv::imshow(OPENCV_WINDOW2, image_thresholded);
  
   cv::Mat image_contours = cv::Mat::zeros(image_thresholded.rows, image_thresholded.cols, CV_8UC3); 
   cv::vector< cv::vector<cv::Point> > contours;
@@ -102,7 +103,7 @@ void ObjectDetector::detectObjectByColor(const cv::Mat image_bgr, cv::Point2f &c
   center = cv::Point2f(mu.m10/mu.m00, mu.m01/mu.m00);
   area = cv::contourArea(*max_iterator, false);
 
-  cv::drawContours(image_contours, contours, max_iterator - contours.begin(),  cv::Scalar(152,5,85), CV_FILLED);
-  cv::imshow(OPENCV_WINDOW, image_contours);
+  cv::drawContours(image_contours, contours, max_iterator - contours.begin(), cv::Scalar(152,5,85), CV_FILLED);
+  //cv::imshow(OPENCV_WINDOW, image_contours);
   cv::waitKey(50);
 }
