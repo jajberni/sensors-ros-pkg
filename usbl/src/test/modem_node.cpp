@@ -67,7 +67,7 @@ void onMsg(labust::tritech::MTDevice& modem, const std_msgs::String::ConstPtr ms
 	using namespace labust::tritech;
 
 	//Test if modem-lockup occured
-	if ((ros::Time::now() - lastMsg).toSec() > max_seconds) reboot(modem);
+	//if ((ros::Time::now() - lastMsg).toSec() > max_seconds) reboot(modem);
 
 	MTMsgPtr tmsg(new MTMsg());
 	tmsg->txNode = 255;
@@ -138,7 +138,19 @@ int main(int argc, char* argv[])
 	map[MTMsg::mtMiniModemData] = boost::bind(&onData,boost::ref(pub), _1);
 	modem.registerHandlers(map);
 
-	ros::spin();
+	ros::Rate loop(10);
+
+	while (ros::ok())
+	{
+		//Test if modem-lockup occured
+		if ((ros::Time::now() - lastMsg).toSec() > max_seconds)
+		{
+			reboot(modem);
+			lastMsg = ros::Time::now();
+		}
+		loop.sleep();
+		ros::spinOnce();
+	}
 
 	return 0;
 }
