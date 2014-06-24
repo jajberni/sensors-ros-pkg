@@ -130,7 +130,14 @@ namespace labust
 			 * Maximum diver speed.
 			 */
 			double maxSpeed;
-
+			/**
+			 * Pass through configuration
+			 */
+			bool isPassThrough;
+			/**
+			 * Test for received position.
+			 */
+			bool hasUSBL;
 		};
 	}
 }

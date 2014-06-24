@@ -46,9 +46,28 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 
+ros::Time lastMsg;
+int max_seconds(15);
+
+void reboot(labust::tritech::MTDevice& modem)
+{
+	using namespace labust::tritech;
+	MTMsgPtr tmsg(new MTMsg());
+	tmsg->txNode = 255;
+	tmsg->rxNode = labust::tritech::Nodes::SlaveModem;
+	tmsg->node = labust::tritech::Nodes::SlaveModem;
+	tmsg->msgType = MTMsg::mtReboot;
+	modem.send(tmsg);
+	//Wait for modem to init
+	ros::Duration(0.2).sleep();
+}
+
 void onMsg(labust::tritech::MTDevice& modem, const std_msgs::String::ConstPtr msg)
 {
 	using namespace labust::tritech;
+
+	//Test if modem-lockup occured
+	if ((ros::Time::now() - lastMsg).toSec() > max_seconds) reboot(modem);
 
 	MTMsgPtr tmsg(new MTMsg());
 	tmsg->txNode = 255;
@@ -87,6 +106,9 @@ void onData(ros::Publisher& modemOut, labust::tritech::MTMsgPtr tmsg)
 		std::cout<<int(data.data[i])<<",";
 	}
 	std::cout<<std::endl;*/
+
+	//Remeber last message
+	lastMsg = ros::Time::now();
 
 	std_msgs::String modem;
 	modem.data.assign(data.data.begin(), data.data.end());

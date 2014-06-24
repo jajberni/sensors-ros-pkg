@@ -49,22 +49,29 @@ PLUGINLIB_DECLARE_CLASS(usbl,USBLFilter,labust::tritech::USBLFilter, nodelet::No
 using namespace labust::tritech;
 
 USBLFilter::USBLFilter():
-	listener(buffer),
-	timeout(150),
-	iteration(0),
-	maxSpeed(0.5){};
+			listener(buffer),
+			timeout(150),
+			iteration(0),
+			maxSpeed(0.5),
+			isPassThrough(false),
+			hasUSBL(false){};
 
 USBLFilter::~USBLFilter(){};
 
 void USBLFilter::onInit()
 {
 	ros::NodeHandle nh = this->getNodeHandle();
+	ros::NodeHandle ph = this->getMTPrivateNodeHandle();
 	usblSub = nh.subscribe<geometry_msgs::PointStamped>("usbl_nav", 1, boost::bind(&USBLFilter::onUsbl,this,_1));
 	navPub = nh.advertise<auv_msgs::NavSts>("usblFiltered",1);
 
-	filter.initModel();
-	configureModel(nh);
-	worker = boost::thread(boost::bind(&USBLFilter::run,this));
+	ph.param("pass_through", isPassThrough, isPassThrough);
+	if (!isPassThrough)
+	{
+		filter.initModel();
+		configureModel(nh);
+		worker = boost::thread(boost::bind(&USBLFilter::run,this));
+	}
 }
 
 void USBLFilter::configureModel(ros::NodeHandle& nh)
@@ -110,7 +117,7 @@ void USBLFilter::onUsbl(const geometry_msgs::PointStamped::ConstPtr& msg)
 	NODELET_DEBUG("New update: %f %f %f\n",msg->point.x, msg->point.y, msg->point.z);
 
 	boost::mutex::scoped_lock lock(dataMux);
-
+	hasUSBL = true;
 	geometry_msgs::TransformStamped transform;
 	try
 	{
@@ -128,29 +135,56 @@ void USBLFilter::onUsbl(const geometry_msgs::PointStamped::ConstPtr& msg)
 	vec(1) = transform.transform.translation.y + msg->point.y;
 	depth = transform.transform.translation.z + (-msg->point.z);
 
-	double inx, iny;
-	filter.calculateXYInovationVariance(filter.getStateCovariance(),inx,iny);
-	const KFilter::vector& xy(filter.getState());
-	double outlierR = 1;
-	bool outlier = sqrt(pow(xy(KFilter::xp)-vec(0),2) +
-			pow(xy(KFilter::yp)-vec(1),2)) > outlierR*sqrt(inx*inx + iny*iny);
-
-	if (!outlier)
+	if (isPassThrough)
 	{
-		filter.correct(vec);
+		try
+		{
+			auv_msgs::NavSts::Ptr odom(new auv_msgs::NavSts());
+			geometry_msgs::TransformStamped transformDeg;
+			transformDeg = buffer.lookupTransform("worldLatLon", "local", ros::Time(0));
 
-		//Limit diver speed
-		KFilter::vector newState(filter.getState());
-		newState(KFilter::Vv) = labust::math::coerce(
-				newState(KFilter::Vv), -maxSpeed, maxSpeed);
-		filter.setState(newState);
-		iteration = 0;
+			std::pair<double, double> diffAngle = labust::tools::meter2deg(vec(0),
+					vec(1),
+					//The latitude angle
+					transformDeg.transform.translation.y);
+			odom->global_position.latitude = transformDeg.transform.translation.y + diffAngle.first;
+			odom->global_position.longitude = transformDeg.transform.translation.x + diffAngle.second;
+			odom->position.north = vec(0);
+			odom->position.east = vec(1);
+			odom->position.depth = vec(2);
+			navPub.publish(odom);
+		}
+		catch(tf2::TransformException& ex)
+		{
+			NODELET_ERROR("%s",ex.what());
+		}
 	}
 	else
 	{
-		NODELET_INFO("Outlier rejected: current: (%f,%f) - measurement: (%f,%f) - inovation: (%f,%f)",
-				xy(KFilter::xp), xy(KFilter::yp),
-				vec(0), vec(1), inx, iny);
+		double inx, iny;
+		filter.calculateXYInovationVariance(filter.getStateCovariance(),inx,iny);
+		const KFilter::vector& xy(filter.getState());
+		double outlierR = 1;
+		bool outlier = sqrt(pow(xy(KFilter::xp)-vec(0),2) +
+				pow(xy(KFilter::yp)-vec(1),2)) > outlierR*sqrt(inx*inx + iny*iny);
+
+		if (!outlier)
+		{
+			filter.correct(vec);
+
+			//Limit diver speed
+			KFilter::vector newState(filter.getState());
+			newState(KFilter::Vv) = labust::math::coerce(
+					newState(KFilter::Vv), -maxSpeed, maxSpeed);
+			filter.setState(newState);
+			iteration = 0;
+		}
+		else
+		{
+			NODELET_INFO("Outlier rejected: current: (%f,%f) - measurement: (%f,%f) - inovation: (%f,%f)",
+					xy(KFilter::xp), xy(KFilter::yp),
+					vec(0), vec(1), inx, iny);
+		}
 	}
 };
 
@@ -160,7 +194,7 @@ void USBLFilter::run()
 	ros::Rate rate(10);
 	timeout = 100;
 
-	while (ros::ok())
+	while (ros::ok() && !isPassThrough)
 	{
 		boost::mutex::scoped_lock lock(dataMux);
 
@@ -211,7 +245,7 @@ void USBLFilter::run()
 		}
 
 		//\todo Add covariance data
-		navPub.publish(odom);
+		if (hasUSBL) navPub.publish(odom);
 		rate.sleep();
 	}
 }
