@@ -238,6 +238,8 @@ void USBLFilter::run()
 					transformDeg.transform.translation.y);
 			odom->global_position.latitude = transformDeg.transform.translation.y + diffAngle.first;
 			odom->global_position.longitude = transformDeg.transform.translation.x + diffAngle.second;
+			odom->origin.latitude = transformDeg.transform.translation.y;
+			odom->origin.longitude = transformDeg.transform.translation.x;
 		}
 		catch(tf2::TransformException& ex)
 		{
