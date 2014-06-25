@@ -68,6 +68,8 @@ void onMsg(labust::tritech::MTDevice& modem, const std_msgs::String::ConstPtr ms
 
 	//Test if modem-lockup occured
 	//if ((ros::Time::now() - lastMsg).toSec() > max_seconds) reboot(modem);
+	//Remeber the last reply time
+	lastMsg = ros::Time::now();
 
 	MTMsgPtr tmsg(new MTMsg());
 	tmsg->txNode = 255;
@@ -106,9 +108,6 @@ void onData(ros::Publisher& modemOut, labust::tritech::MTMsgPtr tmsg)
 		std::cout<<int(data.data[i])<<",";
 	}
 	std::cout<<std::endl;*/
-
-	//Remeber last message
-	lastMsg = ros::Time::now();
 
 	std_msgs::String modem;
 	modem.data.assign(data.data.begin(), data.data.end());
