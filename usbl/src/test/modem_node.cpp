@@ -46,9 +46,30 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 
+ros::Time lastMsg;
+int max_seconds(15);
+
+void reboot(labust::tritech::MTDevice& modem)
+{
+	using namespace labust::tritech;
+	MTMsgPtr tmsg(new MTMsg());
+	tmsg->txNode = 255;
+	tmsg->rxNode = labust::tritech::Nodes::SlaveModem;
+	tmsg->node = labust::tritech::Nodes::SlaveModem;
+	tmsg->msgType = MTMsg::mtReboot;
+	modem.send(tmsg);
+	//Wait for modem to init
+	ros::Duration(0.2).sleep();
+}
+
 void onMsg(labust::tritech::MTDevice& modem, const std_msgs::String::ConstPtr msg)
 {
 	using namespace labust::tritech;
+
+	//Test if modem-lockup occured
+	//if ((ros::Time::now() - lastMsg).toSec() > max_seconds) reboot(modem);
+	//Remeber the last reply time
+	lastMsg = ros::Time::now();
 
 	MTMsgPtr tmsg(new MTMsg());
 	tmsg->txNode = 255;
@@ -116,7 +137,19 @@ int main(int argc, char* argv[])
 	map[MTMsg::mtMiniModemData] = boost::bind(&onData,boost::ref(pub), _1);
 	modem.registerHandlers(map);
 
-	ros::spin();
+	ros::Rate loop(10);
+
+	while (ros::ok())
+	{
+		//Test if modem-lockup occured
+		if ((ros::Time::now() - lastMsg).toSec() > max_seconds)
+		{
+			reboot(modem);
+			lastMsg = ros::Time::now();
+		}
+		loop.sleep();
+		ros::spinOnce();
+	}
 
 	return 0;
 }
