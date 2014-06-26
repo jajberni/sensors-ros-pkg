@@ -1,0 +1,9 @@
+<launch>
+  <node pkg="camera_image_processing" type="object_detector_node" name="object_detector">
+    <!-- <param name="format7_color_coding" value="rgb8" /> -->
+  </node>
+
+  <node pkg="camera_image_processing" type="external_camera_publisher_node" name="external_camera_publisher" />
+
+  <node pkg="rosbag" type="record" name="rosbag" args="/camera/image_raw/compressed /camera/camera_info" />
+</launch>

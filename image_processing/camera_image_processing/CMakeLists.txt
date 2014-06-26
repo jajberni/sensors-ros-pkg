@@ -107,6 +107,7 @@ include_directories(
 # )
 
 ## Declare a cpp executable
+add_executable(external_camera_publisher_node src/ExternalCameraPublisherNode.cpp)
 add_executable(object_detector_node src/ObjectDetectorNode.cpp)
 
 ## Add cmake target dependencies of the executable/library
@@ -114,6 +115,10 @@ add_executable(object_detector_node src/ObjectDetectorNode.cpp)
 # add_dependencies(image_processing_util_node image_processing_util_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
+target_link_libraries(external_camera_publisher_node
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
 target_link_libraries(object_detector_node
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}

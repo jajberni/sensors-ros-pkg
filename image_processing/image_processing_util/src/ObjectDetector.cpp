@@ -43,54 +43,55 @@
 
 using namespace labust::sensors::image;
 
-static const std::string OPENCV_WINDOW = "Control";
-static const std::string OPENCV_WINDOW2 = "Threshold";
+ObjectDetector::ObjectDetector() :
+    CONTROL_WINDOW("Control"),
+    enable_video_display(false) {
+  iLowH = 0;
+  iHighH = 179;
+  iLowS = 0; 
+  iHighS = 255;
+  iLowV = 0;
+  iHighV = 255;
+}
 
-ObjectDetector::ObjectDetector() {
+void ObjectDetector::setEnableVideoDisplay() {
+  enable_video_display = true;
   this->createOpenCvWindow();
 }
 
 void ObjectDetector::createOpenCvWindow() {
-  //cv::namedWindow(OPENCV_WINDOW);
+  cv::namedWindow(CONTROL_WINDOW);
 
-  iLowH = 0;
-  iHighH = 179;
-
-  iLowS = 0; 
-  iHighS = 255;
-
-  iLowV = 0;
-  iHighV = 255;
-
-  /*
   // Create trackbars in "Control" window
   // Hue (0-179) 
-  cvCreateTrackbar("LowH", "Control", &iLowH, 179); 
-  cvCreateTrackbar("HighH", "Control", &iHighH, 179);
+  cvCreateTrackbar("LowH", CONTROL_WINDOW, &iLowH, 179); 
+  cvCreateTrackbar("HighH", CONTROL_WINDOW, &iHighH, 179);
   // Saturation (0-255)
-  cvCreateTrackbar("LowS", "Control", &iLowS, 255); 
-  cvCreateTrackbar("HighS", "Control", &iHighS, 255);
+  cvCreateTrackbar("LowS", CONTROL_WINDOW, &iLowS, 255); 
+  cvCreateTrackbar("HighS", CONTROL_WINDOW, &iHighS, 255);
   // Value (0-255)
-  cvCreateTrackbar("LowV", "Control", &iLowV, 255); 
-  cvCreateTrackbar("HighV", "Control", &iHighV, 255);
-  cv::waitKey(30);*/
+  cvCreateTrackbar("LowV", CONTROL_WINDOW, &iLowV, 255); 
+  cvCreateTrackbar("HighV", CONTROL_WINDOW, &iHighV, 255);
+  cv::waitKey(1);
 }
 
 ObjectDetector::~ObjectDetector() {
-  cv::destroyWindow(OPENCV_WINDOW);
-  cv::destroyWindow(OPENCV_WINDOW2);
+  cv::destroyWindow(CONTROL_WINDOW);
 }
 
 bool compare(cv::vector<cv::Point> a, cv::vector<cv::Point> b) {
-  return (a.size() < b.size());
+  return (a.size() > b.size());
 }
 
 void ObjectDetector::detectObjectByColor(const cv::Mat image_bgr, cv::Point2f &center, double &area) {
   cv::Mat image_hsv, image_thresholded;
   cv::cvtColor(image_bgr, image_hsv, CV_BGR2HSV);
   cv::inRange(image_hsv, cv::Scalar(iLowH, iLowS, iLowV), cv::Scalar(iHighH, iHighS, iHighV), image_thresholded); 
-  //cv::imshow(OPENCV_WINDOW2, image_thresholded);
- 
+  if (enable_video_display) {
+    cv::imshow(CONTROL_WINDOW, image_thresholded);
+    cv::waitKey(1);
+  }
+
   cv::Mat image_contours = cv::Mat::zeros(image_thresholded.rows, image_thresholded.cols, CV_8UC3); 
   cv::vector< cv::vector<cv::Point> > contours;
   cv::findContours(image_thresholded, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
@@ -98,12 +99,21 @@ void ObjectDetector::detectObjectByColor(const cv::Mat image_bgr, cv::Point2f &c
   if (contours.size() == 0) return;
 
   cv::Moments mu;
-  cv::vector< cv::vector<cv::Point> >::iterator max_iterator = std::max_element(contours.begin(), contours.end(), compare);
-  mu = cv::moments(*max_iterator, false);
+  std::sort(contours.begin(), contours.end(), compare);
+  //cv::vector< cv::vector<cv::Point> >::iterator max_iterator = std::max_element(contours.begin(), contours.end(), compare);
+  // Consider 10 contours with largest circumference
+  int max_area_index = 0;
+  double max_area = 0, curr_area;
+  for (int i=0; i<std::min(static_cast<int>(contours.size()), 5); ++i) {
+    curr_area = cv::contourArea(contours[i], false);
+    if (curr_area > max_area) {
+      max_area = curr_area;
+      max_area_index = i;
+    }
+  }
+  mu = cv::moments(contours[max_area_index], false);
   center = cv::Point2f(mu.m10/mu.m00, mu.m01/mu.m00);
-  area = cv::contourArea(*max_iterator, false);
+  area = max_area;
 
-  cv::drawContours(image_contours, contours, max_iterator - contours.begin(), cv::Scalar(152,5,85), CV_FILLED);
-  //cv::imshow(OPENCV_WINDOW, image_contours);
-  cv::waitKey(50);
+  cv::drawContours(image_contours, contours, max_area_index, cv::Scalar(152,5,85), CV_FILLED);
 }

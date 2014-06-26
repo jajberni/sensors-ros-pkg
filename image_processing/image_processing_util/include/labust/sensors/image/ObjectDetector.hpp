@@ -45,11 +45,13 @@ namespace labust {
         ObjectDetector();
         ~ObjectDetector();
         void detectObjectByColor(const cv::Mat image_bgr, cv::Point2f &center, double &area);
-        void createOpenCvWindow();
+        void setEnableVideoDisplay();
 
       private:
+        void createOpenCvWindow();
+        const char *CONTROL_WINDOW;
         int iLowH, iHighH, iLowS, iHighS, iLowV, iHighV;
-
+        bool enable_video_display;
       };
 
     }
