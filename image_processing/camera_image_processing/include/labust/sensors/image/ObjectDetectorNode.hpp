@@ -53,7 +53,8 @@ namespace labust {
       public:
         ObjectDetectorNode();
         ~ObjectDetectorNode();
-        void setEnableVideoDisplay();
+        void setObjectDetector(ObjectDetector *object_detector);
+        void setEnableVideoDisplay(bool enable_video_display);
 
       private:
         void processFrame(const sensor_msgs::ImageConstPtr &sensor_image);
@@ -63,7 +64,7 @@ namespace labust {
         image_transport::Subscriber image_sub_;
         image_transport::Publisher image_pub_;
         std_msgs::Float64MultiArrayPtr detected_object_;
-        ObjectDetector object_detector_;
+        ObjectDetector *object_detector_;
         std::string camera_topic_, opencv_window_;
         bool is_compressed_, enable_video_display_;
       };
