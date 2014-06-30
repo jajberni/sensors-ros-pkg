@@ -47,6 +47,13 @@ namespace labust {
         return cv_image;
       }
 
+      sensor_msgs::ImagePtr cvImage2SensorImage(const cv::Mat image, std::string encoding) {
+        cv_bridge::CvImage cv_image;
+        cv_image.image = image;
+        cv_image.encoding = encoding;
+        return cv_image.toImageMsg();
+      }
+
     }
   }
 }

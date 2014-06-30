@@ -40,7 +40,7 @@
 #include <std_msgs/Float64MultiArray.h>
 #include <sensor_msgs/image_encodings.h>
 
-#include <labust/sensors/image/ObjectDetectorNode.hpp>
+#include <labust/sensors/image/ExternalCameraPublisherNode.hpp>
 #include <labust/sensors/image/ImageProcessingUtil.hpp>
 #include <labust/sensors/image/ObjectDetector.hpp>
 
@@ -52,72 +52,67 @@
 using namespace labust::sensors::image;
 
 /**
- * Creates a ROS node for object detection from camera image.
+ * ROS node for publishing videos from external cameras.
  */
-ObjectDetectorNode::ObjectDetectorNode() :
+ExternalCameraPublisherNode::ExternalCameraPublisherNode() :
     it_(nh_),
-    camera_topic_("/camera/image_raw"),
-    is_compressed_(false),
-    enable_video_display_(false),
-    opencv_window_("detected_object"),
-    detected_object_(new std_msgs::Float64MultiArray()) {
-
+    ros_rate_(24),
+    is_video_(true),
+    camera_address_("device"),
+    device_id_(0),
+    publish_topic_("/camera/image_raw") {
   ros::NodeHandle ph("~");
-  ph.getParam("camera_topic", camera_topic_);
-  ph.getParam("is_compressed", is_compressed_);
-
-  // To access compressed video TransportHints must be used.
-  if (is_compressed_) {
-    image_transport::TransportHints hints("compressed", ros::TransportHints());
-    image_sub_ = it_.subscribe(camera_topic_, 1, &ObjectDetectorNode::processFrame, this, hints);
-  } else {
-    image_sub_ = it_.subscribe(camera_topic_, 1, &ObjectDetectorNode::processFrame, this);
-  }
-  image_pub_ = it_.advertise("/object_tracking", 1);
-
-  detected_object_publisher_ = nh_.advertise<std_msgs::Float64MultiArray>("detected_object", 1);
-  detected_object_->data.resize(3);
+  ph.getParam("ros_rate", ros_rate_);
+  ph.getParam("is_video", is_video_);
+  ph.getParam("camera_address", camera_address_);
+  ph.getParam("device_id", device_id_);
+  ph.getParam("publish_topic", publish_topic_);
+  image_pub_ = it_.advertise(publish_topic_, 1);
 }
 
-ObjectDetectorNode::~ObjectDetectorNode() {}
-
-/**
- * Process image frame.
- * sensor_msgs::Image is converted to OpenCV format via cv_bridge and sent to ObjectDetector object.
- */
-void ObjectDetectorNode::processFrame(const sensor_msgs::ImageConstPtr &sensor_image) {
-  cv_bridge::CvImagePtr cv_image_bgr;
-  cv::Point2f center;
-  double area;
-  try {
-    cv_image_bgr = sensorImage2CvImage(sensor_image, sensor_msgs::image_encodings::BGR8);
-  } catch (cv_bridge::Exception &e) {
-    ROS_ERROR("cv_bridge exception: %s", e.what());
-    return;
+ExternalCameraPublisherNode::~ExternalCameraPublisherNode() {
+  if (is_video_) {
+    video_capture_.release();
   }
-  object_detector_.detectObjectByColor(cv_image_bgr->image, center, area);
-  if (enable_video_display_ && area > 0) {
-    cv::circle(cv_image_bgr->image, center, sqrt(area)/M_PI/2, cv::Scalar(0, 0, 255), -1);
-    cv::imshow(opencv_window_, cv_image_bgr->image);
-    cv::waitKey(1);
-  }
-  detected_object_->data[0] = center.x;
-  detected_object_->data[1] = center.y;
-  detected_object_->data[2] = area;
-  detected_object_publisher_.publish(detected_object_);
 }
 
-void ObjectDetectorNode::setEnableVideoDisplay() {
-  enable_video_display_ = true;
-  object_detector_.setEnableVideoDisplay();
-  cv::namedWindow(opencv_window_); 
-  cv::waitKey(1);
+void ExternalCameraPublisherNode::start() {
+  ros::Rate r(ros_rate_);
+  // If target is a valid video stream, open it now.
+  if (is_video_) {
+    if (camera_address_ == "device") {
+      video_capture_.open(device_id_);
+    } else {
+      video_capture_.open(camera_address_);
+    }
+  }
+  while (ros::ok()) {
+    r.sleep();
+    cv::Mat frame;
+    // If target is a valid video stream, read one frame.
+    // If target is not a valid video stream (e.g. a stream of .jpeg images), open image and read it.
+    bool successful_read;
+    if (is_video_) {
+      successful_read = video_capture_.read(frame);
+    } else {
+      frame = cv::imread(camera_address_, 1);
+      successful_read = static_cast<bool>(frame.data);
+    }
+    if (!successful_read) {
+      ROS_INFO("No frame");
+      continue;
+    }
+    // Convert cv::Mat image to sensor_msgs::Image and publish it.
+    // TODO(irendulic): find encoding from cv::Mat.
+    image_pub_.publish(cvImage2SensorImage(frame, "bgr8"));
+    ros::spinOnce();
+  }
 }
 
 int main(int argc, char **argv) {
-  ros::init(argc, argv, "object_detector_node");
-  ObjectDetectorNode od;
-  od.setEnableVideoDisplay();
+  ros::init(argc, argv, "external_camera_driver_node");
+  ExternalCameraPublisherNode ex_cam;
+  ex_cam.start();
   ros::spin();
 
   return 0;
