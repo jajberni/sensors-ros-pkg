@@ -2,7 +2,8 @@
   <node pkg="camera_image_processing" type="object_detector_node" name="object_detector" />
 
   <node pkg="camera_image_processing" type="external_camera_publisher_node" name="external_camera_publisher">
-    <param name="camera_address" value="/home/ivor/Downloads/GOPR0021.MP4" />
+    <param name="camera_address" value="http://192.168.1.5/snap.jpg" />
+    <param name="is_video" value="false" />
   </node>
 
   <node pkg="rosbag" type="record" name="rosbag" args="/camera/image_raw/compressed /camera/camera_info" />
