@@ -42,7 +42,7 @@
 
 #include <labust/sensors/image/ObjectDetectorNode.hpp>
 #include <labust/sensors/image/ImageProcessingUtil.hpp>
-#include <labust/sensors/image/ObjectDetector.hpp>
+#include <labust/sensors/image/ColorObjectDetector.hpp>
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/opencv.hpp>
@@ -81,6 +81,10 @@ ObjectDetectorNode::ObjectDetectorNode() :
 
 ObjectDetectorNode::~ObjectDetectorNode() {}
 
+void ObjectDetectorNode::setObjectDetector(ObjectDetector *object_detector) {
+  object_detector_ = object_detector;
+}
+
 /**
  * Process image frame.
  * sensor_msgs::Image is converted to OpenCV format via cv_bridge and sent to ObjectDetector object.
@@ -95,7 +99,7 @@ void ObjectDetectorNode::processFrame(const sensor_msgs::ImageConstPtr &sensor_i
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
-  object_detector_.detectObjectByColor(cv_image_bgr->image, center, area);
+  object_detector_->detect(cv_image_bgr->image, center, area);
   if (enable_video_display_ && area > 0) {
     cv::circle(cv_image_bgr->image, center, sqrt(area)/M_PI/2, cv::Scalar(0, 0, 255), -1);
     cv::imshow(opencv_window_, cv_image_bgr->image);
@@ -107,9 +111,9 @@ void ObjectDetectorNode::processFrame(const sensor_msgs::ImageConstPtr &sensor_i
   detected_object_publisher_.publish(detected_object_);
 }
 
-void ObjectDetectorNode::setEnableVideoDisplay() {
-  enable_video_display_ = true;
-  object_detector_.setEnableVideoDisplay();
+void ObjectDetectorNode::setEnableVideoDisplay(bool enable_video_display) {
+  enable_video_display_ = enable_video_display;
+  object_detector_->setEnableVideoDisplay(enable_video_display);
   cv::namedWindow(opencv_window_); 
   cv::waitKey(1);
 }
@@ -117,7 +121,8 @@ void ObjectDetectorNode::setEnableVideoDisplay() {
 int main(int argc, char **argv) {
   ros::init(argc, argv, "object_detector_node");
   ObjectDetectorNode od;
-  od.setEnableVideoDisplay();
+  od.setObjectDetector(new ColorObjectDetector());
+  od.setEnableVideoDisplay(true);
   ros::spin();
 
   return 0;

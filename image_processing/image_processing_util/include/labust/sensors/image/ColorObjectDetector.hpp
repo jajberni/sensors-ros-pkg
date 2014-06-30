@@ -31,40 +31,31 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
-#ifndef OBJECTDETECTOR_HPP_
-#define OBJECTDETECTOR_HPP_
+#ifndef COLOROBJECTDETECTOR_HPP_
+#define COLOROBJECTDETECTOR_HPP_
+#include <labust/sensors/image/ObjectDetector.hpp>
 #include <opencv2/opencv.hpp>
 
 namespace labust {
   namespace sensors {
     namespace image {
 
-      /**
-       * Abstract class for object detection.
-       * Classes that implement any kind of object 
-       * detection should extend this class.
-       */
-      class ObjectDetector {
+      class ColorObjectDetector: public ObjectDetector {
 
       public:
-        virtual ~ObjectDetector() {};
-        virtual void detect(const cv::Mat image_bgr, cv::Point2f &center, double &size) = 0;
-        virtual void setEnableVideoDisplay(bool enable_video_display) {
-          enable_video_display_ = enable_video_display;
-          createOpenCvWindow();
-        }
+        ColorObjectDetector();
+        ~ColorObjectDetector();
+        virtual void detect(const cv::Mat image_bgr, cv::Point2f &center, double &size);
+        virtual void setEnableVideoDisplay(bool enable_video_display);
 
-      protected:
-        virtual void createOpenCvWindow() {
-          cv::namedWindow(WINDOW_);
-        };
-        const char *WINDOW_;
-        bool enable_video_display_;
+      private:
+        virtual void createOpenCvWindow();
+        int iLowH, iHighH, iLowS, iHighS, iLowV, iHighV;
       };
 
     }
   }
 }
 
-/* OBJECTDETECTOR_HPP_ */
+/* COLOROBJECTDETECTOR_HPP_ */
 #endif

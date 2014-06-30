@@ -35,7 +35,7 @@
  *  Created: 18.06.2014.
  *********************************************************************/
 #include <algorithm>
-#include <labust/sensors/image/ObjectDetector.hpp>
+#include <labust/sensors/image/ColorObjectDetector.hpp>
 #include <labust/sensors/image/ImageProcessingUtil.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/opencv.hpp>
@@ -43,9 +43,9 @@
 
 using namespace labust::sensors::image;
 
-ObjectDetector::ObjectDetector() :
-    CONTROL_WINDOW("Control"),
-    enable_video_display(false) {
+ColorObjectDetector::ColorObjectDetector() {
+  WINDOW_ = "Color object detector";
+  enable_video_display_ = false;
   iLowH = 0;
   iHighH = 179;
   iLowS = 0; 
@@ -54,41 +54,41 @@ ObjectDetector::ObjectDetector() :
   iHighV = 255;
 }
 
-void ObjectDetector::setEnableVideoDisplay() {
-  enable_video_display = true;
+void ColorObjectDetector::setEnableVideoDisplay(bool enable_video_display) {
+  enable_video_display_ = enable_video_display;
   this->createOpenCvWindow();
 }
 
-void ObjectDetector::createOpenCvWindow() {
-  cv::namedWindow(CONTROL_WINDOW);
+void ColorObjectDetector::createOpenCvWindow() {
+  cv::namedWindow(WINDOW_);
 
   // Create trackbars in "Control" window
   // Hue (0-179) 
-  cvCreateTrackbar("LowH", CONTROL_WINDOW, &iLowH, 179); 
-  cvCreateTrackbar("HighH", CONTROL_WINDOW, &iHighH, 179);
+  cvCreateTrackbar("LowH", WINDOW_, &iLowH, 179); 
+  cvCreateTrackbar("HighH", WINDOW_, &iHighH, 179);
   // Saturation (0-255)
-  cvCreateTrackbar("LowS", CONTROL_WINDOW, &iLowS, 255); 
-  cvCreateTrackbar("HighS", CONTROL_WINDOW, &iHighS, 255);
+  cvCreateTrackbar("LowS", WINDOW_, &iLowS, 255); 
+  cvCreateTrackbar("HighS", WINDOW_, &iHighS, 255);
   // Value (0-255)
-  cvCreateTrackbar("LowV", CONTROL_WINDOW, &iLowV, 255); 
-  cvCreateTrackbar("HighV", CONTROL_WINDOW, &iHighV, 255);
+  cvCreateTrackbar("LowV", WINDOW_, &iLowV, 255); 
+  cvCreateTrackbar("HighV", WINDOW_, &iHighV, 255);
   cv::waitKey(1);
 }
 
-ObjectDetector::~ObjectDetector() {
-  cv::destroyWindow(CONTROL_WINDOW);
+ColorObjectDetector::~ColorObjectDetector() {
+  cv::destroyWindow(WINDOW_);
 }
 
 bool compare(cv::vector<cv::Point> a, cv::vector<cv::Point> b) {
   return (a.size() > b.size());
 }
 
-void ObjectDetector::detectObjectByColor(const cv::Mat image_bgr, cv::Point2f &center, double &area) {
+void ColorObjectDetector::detect(const cv::Mat image_bgr, cv::Point2f &center, double &area) {
   cv::Mat image_hsv, image_thresholded;
   cv::cvtColor(image_bgr, image_hsv, CV_BGR2HSV);
   cv::inRange(image_hsv, cv::Scalar(iLowH, iLowS, iLowV), cv::Scalar(iHighH, iHighS, iHighV), image_thresholded); 
-  if (enable_video_display) {
-    cv::imshow(CONTROL_WINDOW, image_thresholded);
+  if (enable_video_display_) {
+    cv::imshow(WINDOW_, image_thresholded);
     cv::waitKey(1);
   }
 
@@ -115,5 +115,5 @@ void ObjectDetector::detectObjectByColor(const cv::Mat image_bgr, cv::Point2f &c
   center = cv::Point2f(mu.m10/mu.m00, mu.m01/mu.m00);
   area = max_area;
 
-  cv::drawContours(image_contours, contours, max_area_index, cv::Scalar(152,5,85), CV_FILLED);
+  // cv::drawContours(image_contours, contours, max_area_index, cv::Scalar(152,5,85), CV_FILLED);
 }
