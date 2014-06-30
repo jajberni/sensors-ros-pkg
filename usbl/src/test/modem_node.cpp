@@ -127,6 +127,7 @@ int main(int argc, char* argv[])
 
 	ph.param("PortName",port,port);
 	ph.param("Baud",baud,baud);
+	ph.param("timeout",max_seconds,max_seconds);
 
 	MTDevice modem(port,baud);
 
@@ -144,6 +145,7 @@ int main(int argc, char* argv[])
 		//Test if modem-lockup occured
 		if ((ros::Time::now() - lastMsg).toSec() > max_seconds)
 		{
+			std::cout<<"Reseting modem"<<std::endl;
 			reboot(modem);
 			lastMsg = ros::Time::now();
 		}
