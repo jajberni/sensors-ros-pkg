@@ -68,6 +68,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 ## Your package locations should be listed before other locations
 include_directories(
   include
+  src/test
   ${Boost_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
@@ -80,6 +81,12 @@ include_directories(
 ## Declare a cpp executable
 add_executable(spatial_node 
 	src/SpatialNode.cpp)
+add_executable(rtcm_repacker src/test/rtcm_repacker.cpp)
+add_executable(rtcm2.3_repacker src/test/rtcm2.3_repacker.cpp src/test/rtcm.c src/test/rtcm2.c src/test/rtcm3.c src/test/rtcm3e.c src/test/rtkcmn.c)
+add_executable(rtcm2.3_repacker_clean src/test/rtcm2.3_repacker_clean.cpp)
+add_executable(rtcm2.3_repacker_timed src/test/rtcm2.3_repacker_timed.cpp)
+add_executable(rtcm2.3_repacker_unclean src/test/rtcm2.3_repacker_unclean.cpp src/test/rtcm.c src/test/rtcm2.c src/test/rtcm3.c src/test/rtcm3e.c src/test/rtkcmn.c)
+add_executable(bitptr_tester src/test/bitptr_test.cpp src/test/rtcm.c src/test/rtcm2.c src/test/rtcm3.c src/test/rtcm3e.c src/test/rtkcmn.c)
 	
 add_executable(spatial_test
 	src/test/message_test.cpp)
@@ -98,6 +105,45 @@ target_link_libraries(spatial_node
    ${Boost_SERIALIZATION_LIBRARY}
    ${catkin_LIBRARIES}
 )
+
+target_link_libraries(rtcm_repacker
+   ${Boost_THREAD_LIBRARY}
+ # ${Boost_REGEX_LIBRARY}
+   ${Boost_SERIALIZATION_LIBRARY}
+   ${catkin_LIBRARIES}
+)
+
+target_link_libraries(rtcm2.3_repacker
+   ${Boost_THREAD_LIBRARY}
+ # ${Boost_REGEX_LIBRARY}
+   ${Boost_SERIALIZATION_LIBRARY}
+   ${catkin_LIBRARIES}
+   rt
+)
+
+target_link_libraries(rtcm2.3_repacker_clean
+   ${Boost_THREAD_LIBRARY}
+ # ${Boost_REGEX_LIBRARY}
+   ${Boost_SERIALIZATION_LIBRARY}
+   ${catkin_LIBRARIES}
+)
+
+target_link_libraries(rtcm2.3_repacker_timed
+   ${Boost_THREAD_LIBRARY}
+ # ${Boost_REGEX_LIBRARY}
+   ${Boost_SERIALIZATION_LIBRARY}
+   ${catkin_LIBRARIES}
+)
+
+target_link_libraries(rtcm2.3_repacker_unclean
+   ${Boost_THREAD_LIBRARY}
+ # ${Boost_REGEX_LIBRARY}
+   ${Boost_SERIALIZATION_LIBRARY}
+   ${catkin_LIBRARIES}
+   rt
+)
+
+target_link_libraries(bitptr_tester rt)
 
 target_link_libraries(spatial_test ${catkin_LIBRARIES}
 )
