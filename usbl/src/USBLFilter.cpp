@@ -147,6 +147,7 @@ void USBLFilter::onUsbl(const geometry_msgs::PointStamped::ConstPtr& msg)
 					vec(1),
 					//The latitude angle
 					transformDeg.transform.translation.y);
+			odom->header.stamp = ros::Time::now();
 			odom->global_position.latitude = transformDeg.transform.translation.y + diffAngle.first;
 			odom->global_position.longitude = transformDeg.transform.translation.x + diffAngle.second;
 			odom->position.north = vec(0);

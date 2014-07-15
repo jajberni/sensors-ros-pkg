@@ -286,6 +286,7 @@ void SpatialNode::statusUpdate(uint16_t systemStatus, uint16_t filterStatus)
 	stateOk = (systemStatus == 0);
 	orientationOk = filterStatus & 0x01;
 	navigationOk = filterStatus & 0x02;
+	ROS_INFO("Fix type: %d", (filterStatus & 0x70)>>4);
 }
 
 void SpatialNode::onSystemStatePacket(boost::archive::binary_iarchive& data)
@@ -397,6 +398,7 @@ void SpatialNode::onExternalGps(const sensor_msgs::NavSatFix::ConstPtr& gps)
 
 void SpatialNode::onRTCM(const std_msgs::UInt8MultiArray::ConstPtr& rtcm)
 {
+	ROS_INFO("Forwarding RTCM: %d", rtcm->data.size());
 	std::ostringstream out;
 	boost::archive::binary_oarchive dataSer(out, boost::archive::no_header);
 	for(int i=0; i<rtcm->data.size(); ++i) out<<rtcm->data[i];
