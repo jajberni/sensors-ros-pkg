@@ -48,7 +48,7 @@ namespace labust {
 
       public:
         virtual ~ObjectDetector() {};
-        virtual void detect(const cv::Mat image_bgr, cv::Point2f &center, double &size) = 0;
+        virtual void detect(cv::Mat &image, cv::Point2f &center, double &size) = 0;
         virtual void setEnableVideoDisplay(bool enable_video_display) {
           enable_video_display_ = enable_video_display;
           createOpenCvWindow();

@@ -30,32 +30,63 @@
  *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
+ *
+ *  Author : Ivor Rendulic
+ *  Created: 18.06.2014.
  *********************************************************************/
-#ifndef COLOROBJECTDETECTOR_HPP_
-#define COLOROBJECTDETECTOR_HPP_
-#include <labust/sensors/image/ObjectDetector.hpp>
+#include <algorithm>
+#include <labust/sensors/image/HumanHogDetector.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
-namespace labust {
-  namespace sensors {
-    namespace image {
+using namespace labust::sensors::image;
 
-      class ColorObjectDetector: public ObjectDetector {
+HumanHogDetector::HumanHogDetector() {
+  WINDOW_ = "Human HOG detector";
+  enable_video_display_ = false;
 
-      public:
-        ColorObjectDetector();
-        ~ColorObjectDetector();
-        virtual void detect(cv::Mat &image_bgr, cv::Point2f &center, double &size);
-        virtual void setEnableVideoDisplay(bool enable_video_display);
-
-      private:
-        virtual void createOpenCvWindow();
-        int iLowH, iHighH, iLowS, iHighS, iLowV, iHighV;
-      };
-
-    }
-  }
+  hog_descriptor_.setSVMDetector(cv::HOGDescriptor::getDefaultPeopleDetector());
 }
 
-/* COLOROBJECTDETECTOR_HPP_ */
-#endif
+void HumanHogDetector::setEnableVideoDisplay(bool enable_video_display) {
+  enable_video_display_ = enable_video_display;
+  this->createOpenCvWindow();
+}
+
+void HumanHogDetector::createOpenCvWindow() {
+  cv::namedWindow(WINDOW_);
+  cv::waitKey(1);
+}
+
+HumanHogDetector::~HumanHogDetector() {
+  cv::destroyWindow(WINDOW_);
+}
+
+void HumanHogDetector::detect(cv::Mat &image, cv::Point2f &center, double &area) {
+  cv::vector<cv::Rect> found, found_filtered;
+
+  hog_descriptor_.detectMultiScale(image, found, 0, cv::Size(8,8), cv::Size(32,32), 1.05, 2);
+  for (int i=0; i<found.size(); ++i) {
+    cv::Rect r = found[i];
+    int j;
+    for (j=0; j<found.size(); ++j) {
+      if (j!=i && (r & found[j])==r) break;
+    }
+    if (j==found.size()) found_filtered.push_back(r);
+  }
+
+  for (int i=0; i<found.size(); ++i) {
+    cv::Rect r = found_filtered[i];
+    r.x += cvRound(r.width*0.1);
+    r.width = cvRound(r.width*0.8);
+    r.y += cvRound(r.height*0.06);
+    r.height = cvRound(r.height*0.9);
+    cv::rectangle(image, r.tl(), r.br(), cv::Scalar(0,255,0), 2);
+  }
+
+  if (enable_video_display_) {
+    cv::imshow(WINDOW_, image);
+    cv::waitKey(1);
+  }
+}

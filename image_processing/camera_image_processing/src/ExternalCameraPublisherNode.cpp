@@ -95,22 +95,27 @@ void ExternalCameraPublisherNode::start() {
     if (is_video_) {
       successful_read = video_capture_.read(frame);
     } else {
-      frame = cv::imread(camera_address_, 1);
-      successful_read = static_cast<bool>(frame.data);
+      //frame = cv::imread(camera_address_, 1);
+      //successful_read = static_cast<bool>(frame.data);
+      video_capture_.open(camera_address_);
+      successful_read = video_capture_.read(frame);
+      //std::cout << cv::format(frame, "csv") << std::endl << std::endl;
+      //return;
     }
     if (!successful_read) {
       ROS_INFO("No frame");
       continue;
     }
     // Convert cv::Mat image to sensor_msgs::Image and publish it.
-    // TODO(irendulic): find encoding from cv::Mat.
+    // TODO(irendulic): find encoding from cv::Mat, separate source type (video or images) in a better way.
     image_pub_.publish(cvImage2SensorImage(frame, "bgr8"));
+    if (!is_video_) video_capture_.release();
     ros::spinOnce();
   }
 }
 
 int main(int argc, char **argv) {
-  ros::init(argc, argv, "external_camera_driver_node");
+  ros::init(argc, argv, "external_camera_publisher_node");
   ExternalCameraPublisherNode ex_cam;
   ex_cam.start();
   ros::spin();

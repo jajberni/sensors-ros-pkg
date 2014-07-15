@@ -31,8 +31,8 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
-#ifndef COLOROBJECTDETECTOR_HPP_
-#define COLOROBJECTDETECTOR_HPP_
+#ifndef HUMANHOGDETECTOR_HPP_
+#define HUMANHOGDETECTOR_HPP_
 #include <labust/sensors/image/ObjectDetector.hpp>
 #include <opencv2/opencv.hpp>
 
@@ -40,22 +40,26 @@ namespace labust {
   namespace sensors {
     namespace image {
 
-      class ColorObjectDetector: public ObjectDetector {
+      /**
+       * Human detector with histogram of oriented gradients.
+       * TODO(irendulic): Improve, this is the most basic implementation.
+       */
+      class HumanHogDetector: public ObjectDetector {
 
       public:
-        ColorObjectDetector();
-        ~ColorObjectDetector();
-        virtual void detect(cv::Mat &image_bgr, cv::Point2f &center, double &size);
+        HumanHogDetector();
+        ~HumanHogDetector();
+        virtual void detect(cv::Mat &image, cv::Point2f &center, double &size);
         virtual void setEnableVideoDisplay(bool enable_video_display);
 
       private:
         virtual void createOpenCvWindow();
-        int iLowH, iHighH, iLowS, iHighS, iLowV, iHighV;
+        cv::HOGDescriptor hog_descriptor_;
       };
 
     }
   }
 }
 
-/* COLOROBJECTDETECTOR_HPP_ */
+/* HUMANHOGDETECTOR_HPP_ */
 #endif

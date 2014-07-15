@@ -31,8 +31,8 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
-#ifndef COLOROBJECTDETECTOR_HPP_
-#define COLOROBJECTDETECTOR_HPP_
+#ifndef HUMANCASCADECLASSIFIERDETECTOR_HPP_
+#define HUMANCASCADECLASSIFIERDETECTOR_HPP_
 #include <labust/sensors/image/ObjectDetector.hpp>
 #include <opencv2/opencv.hpp>
 
@@ -40,22 +40,34 @@ namespace labust {
   namespace sensors {
     namespace image {
 
-      class ColorObjectDetector: public ObjectDetector {
+      /**
+       * Human bodypart detector with Haar cascades.
+       */
+      class HumanCascadeClassifierDetector: public ObjectDetector {
 
       public:
-        ColorObjectDetector();
-        ~ColorObjectDetector();
-        virtual void detect(cv::Mat &image_bgr, cv::Point2f &center, double &size);
+        enum CascadeType {
+          EYES,
+          FACE,
+          FIST,
+          MOUTH,
+          PALM 
+        };
+        HumanCascadeClassifierDetector();
+        ~HumanCascadeClassifierDetector();
+        void addCascade(CascadeType cascade_type);
+        virtual void detect(cv::Mat &image, cv::Point2f &center, double &size);
         virtual void setEnableVideoDisplay(bool enable_video_display);
 
       private:
         virtual void createOpenCvWindow();
-        int iLowH, iHighH, iLowS, iHighS, iLowV, iHighV;
+        std::vector<cv::CascadeClassifier> cascades_;
+        std::vector<std::string> haarcascade_files_;
       };
 
     }
   }
 }
 
-/* COLOROBJECTDETECTOR_HPP_ */
+/* HUMANCASCADECLASSIFIERDETECTOR_HPP_ */
 #endif
