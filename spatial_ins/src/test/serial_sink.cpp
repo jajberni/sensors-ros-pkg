@@ -35,40 +35,25 @@
  *  Created: 23.01.2013.
  *********************************************************************/
 #include <std_msgs/UInt8MultiArray.h>
-#include <labust/navigation/BitPacker.hpp>
-
 #include <ros/ros.h>
-
 #include <boost/asio.hpp>
-#include <boost/crc.hpp>
-#include <boost/thread.hpp>
-#include <bitset>
-
-#include <boost/regex.hpp>
-
-#include <iosfwd>
 
 struct SharedData
 {
-	enum {RTCM2PREAMB=0x66};
-	SharedData():port(io), port2(io)
+	SharedData():port(io)
 	{};
 
 	~SharedData()
 	{
 		io.stop();
-		runner.join();
 	}
 
 	void init()
 	{
 		this->setup_port();
-
 		ros::NodeHandle nh;
-		rtcmOut = nh.advertise<std_msgs::UInt8MultiArray>("rtcm_out",1);
-
-		this->start_receive();
-		runner = boost::thread(boost::bind(&boost::asio::io_service::run,&io));
+		serialIn = nh.subscribe<std_msgs::UInt8MultiArray>("serial_out",1,
+				boost::bind(&SharedData::onSerialIn, this,_1));
 	}
 
 	bool setup_port()
@@ -86,75 +71,23 @@ struct SharedData
 		port.set_option(serial_port::flow_control(
 				serial_port::flow_control::none));
 
-		readTime = ros::Time::now();
-/*
-		std::string portName2("/dev/ttyUSB0");
-		int baud2(115200);
-
-		ph.param("PortName2",portName2,portName2);
-		ph.param("Baud2",baud2,baud2);
-
-		using namespace boost::asio;
-		port2.open(portName2);
-		port2.set_option(serial_port::baud_rate(baud));
-		port2.set_option(serial_port::flow_control(
-				serial_port::flow_control::none));*/
-
 		return port.is_open();
 	}
 
-	void start_receive()
+	void onSerialIn(const std_msgs::UInt8MultiArray::ConstPtr data)
 	{
-		using namespace boost::asio;
-		async_read_until(port, buffer,
-				boost::regex("\r\n"),
-				boost::bind(&SharedData::onData, this, _1,_2));
+		boost::asio::write(port, boost::asio::buffer(data->data));
 	}
 
-	void onData(const boost::system::error_code& e,
-			std::size_t size)
-	{
-		std::cout<<"Received data size:"<<size<<std::endl;
-		if (!e)
-		{
-			std::istream is(&buffer);
-			//Is the new data a potential sync.
-			if (is.peek() == RTCM2PREAMB)
-			{
-				//boost::asio::write(port2, boost::asio::buffer(array_out.data));
-				rtcmOut.publish(array_out);
-				//array_out.data.clear();
-				if (array_out.data.begin() != array_out.data.end())
-				{
-					array_out.data.erase(array_out.data.begin(),array_out.data.end()-1);
-				}
-			}
-
-			size_t curSize = array_out.data.size();
-			size_t newSize = curSize + size - 2;
-			array_out.data.resize(newSize);
-			is.read(reinterpret_cast<char*>(&array_out.data[curSize]),size);
-			//Empty \r\n
-			char lf[2];
-			is.read(lf,2);
-		}
-		this->start_receive();
-	}
-
-	boost::asio::streambuf buffer;
-	std_msgs::UInt8MultiArray array_out;
-	ros::Publisher rtcmOut;
-	boost::thread runner;
+	ros::Subscriber serialIn;
 	boost::asio::io_service io;
 	boost::asio::serial_port port;
-	ros::Time readTime;
-	boost::asio::serial_port port2;
 };
 
 
 int main(int argc, char* argv[])
 {
-	ros::init(argc, argv, "rtcm_repacker");
+	ros::init(argc, argv, "serial_sink");
 	SharedData data;
 	data.init();
 	ros::spin();

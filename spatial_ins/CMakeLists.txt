@@ -87,6 +87,7 @@ add_executable(rtcm2.3_repacker_clean src/test/rtcm2.3_repacker_clean.cpp)
 add_executable(rtcm2.3_repacker_timed src/test/rtcm2.3_repacker_timed.cpp)
 add_executable(rtcm2.3_repacker_unclean src/test/rtcm2.3_repacker_unclean.cpp src/test/rtcm.c src/test/rtcm2.c src/test/rtcm3.c src/test/rtcm3e.c src/test/rtkcmn.c)
 add_executable(bitptr_tester src/test/bitptr_test.cpp src/test/rtcm.c src/test/rtcm2.c src/test/rtcm3.c src/test/rtcm3e.c src/test/rtkcmn.c)
+add_executable(serial_sink src/test/serial_sink.cpp)
 	
 add_executable(spatial_test
 	src/test/message_test.cpp)
@@ -141,6 +142,11 @@ target_link_libraries(rtcm2.3_repacker_unclean
    ${Boost_SERIALIZATION_LIBRARY}
    ${catkin_LIBRARIES}
    rt
+)
+
+target_link_libraries(serial_sink
+   ${Boost_SERIALIZATION_LIBRARY}
+   ${catkin_LIBRARIES}
 )
 
 target_link_libraries(bitptr_tester rt)
