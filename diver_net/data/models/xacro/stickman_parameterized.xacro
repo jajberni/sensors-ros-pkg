@@ -1,0 +1,207 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="diver">
+	<link name="local" />
+	
+	<!-- Torso parameters -->
+	<xacro:property name="lower_h" value="0.3" />
+	<xacro:property name="lower_w" value="0.4" />
+	<xacro:property name="lower_d" value="0.3" />
+	
+	<xacro:property name="upper_h" value="0.8" />
+	<xacro:property name="upper_w" value="0.5" />
+	<xacro:property name="upper_d" value="0.3" />
+	
+    <xacro:property name="head_radius" value="0.1" />
+    
+    <!--  Leg parameters -->
+    
+    <!--  Arm parameters -->
+    <xacro:property name="shoulder_distance" value="0.2" />
+    
+    <xacro:property name="shoulder_h" value="0.2" />
+	<xacro:property name="shoulder_w" value="0.2" />
+	<xacro:property name="shoulder_d" value="0.1" />
+	
+	<xacro:property name="upper_arm_radius" value="0.05" />
+	<xacro:property name="upper_arm_length" value="0.4" />
+	
+	<xacro:property name="forearm_radius" value="0.04" />
+	<xacro:property name="forearm_length" value="0.3" />
+	
+	<xacro:property name="hand_d" value="0.025" />
+	<xacro:property name="hand_w" value="0.05" />
+	<xacro:property name="hand_h" value="0.15" />
+	
+	<!-- Constants -->
+	<xacro:property name="M_PI" value="3.14159" />
+	
+	
+	<xacro:macro name="Joint3d"
+		params="node parent *origin *geometry *color *origin_joint">
+		<link name="${node}_2" />
+		<link name="${node}_1" />
+		<link name="${node}">
+			<visual>
+				<xacro:insert_block name="origin" />
+				<geometry>
+					<xacro:insert_block name="geometry" />
+				</geometry>
+				<material name="${node}_color">
+					<xacro:insert_block name="color" />
+				</material>
+			</visual>
+		</link>
+
+		<joint name="${node}_z" type="continuous">
+			<xacro:insert_block name="origin_joint" />
+			<axis xyz="0 0 1" />
+			<parent link="${parent}" />
+			<child link="${node}_2" />
+		</joint>
+
+		<joint name="${node}_y" type="continuous">
+			<axis xyz="0 1 0" />
+			<parent link="${node}_2" />
+			<child link="${node}_1" />
+		</joint>
+
+		<joint name="${node}_x" type="continuous">
+			<axis xyz="1 0 0" />
+			<parent link="${node}_1" />
+			<child link="${node}" />
+		</joint>
+	</xacro:macro>
+	
+	<xacro:Joint3d node="lower_back" parent="local">
+		<origin xyz="${lower_h/3} 0 ${-lower_d/2}" rpy="0 ${0.5*M_PI} 0" />
+		<box size="${lower_d} ${lower_w} ${lower_h}"/>
+		<color rgba="1 0 0 1" />
+		<origin xyz="0 0 ${lower_h}"/>
+	</xacro:Joint3d>
+
+	<xacro:Joint3d node="upper_body" parent="lower_back">
+		<origin xyz="${upper_h/2} 0 ${-upper_d/2}" rpy="0 ${0.5*M_PI} 0" />
+		<box size="${upper_d} ${upper_w} ${upper_h}"/>
+		<color rgba="0 0 1 1" />
+		<origin xyz="${5*lower_h/6} 0 ${-lower_h}" />
+	</xacro:Joint3d>
+	
+	<xacro:Joint3d node="head" parent="upper_body">
+		<origin xyz="0 0 ${head_radius}" rpy="0 ${0.5*M_PI} 0" />
+		<sphere radius="${head_radius}" />
+		<color rgba="0 1 0 1" />
+		<origin xyz="${head_radius/2 + upper_h} 0 ${-upper_d/2}" />
+	</xacro:Joint3d>
+	
+	<!-- <xacro:Joint3d node="left_thigh" parent="local">
+		<origin xyz="0.2 0 0" rpy="0 1.5708 0"/>
+		<cylinder radius="0.12" length="0.4" />
+		<color rgba="1 1 0 1" />
+		<origin xyz="-0.05 0.12 0.15" />
+	</xacro:Joint3d>
+	
+	<xacro:Joint3d node="right_thigh" parent="local">
+		<origin xyz="0.2 0 0" rpy="0 1.5708 0"/>
+		<cylinder radius="0.12" length="0.4" />
+		<color rgba="1 1 0 1" />
+		<origin xyz="-0.05 -0.12 0.15" />
+	</xacro:Joint3d> -->
+		
+	<xacro:Joint3d node="left_thigh" parent="lower_back">
+		<origin xyz="0.2 0 0" rpy="0 ${0.5*M_PI} 0"/>
+		<cylinder radius="0.12" length="0.4" />
+		<color rgba="0 1 1 1" />
+		<origin xyz="-0.05 0.12 -0.15" />
+	</xacro:Joint3d>
+	
+	<xacro:Joint3d node="right_thigh" parent="lower_back">
+		<origin xyz="0.2 0 0" rpy="0 ${0.5*M_PI} 0"/>
+		<cylinder radius="0.12" length="0.4" />
+		<color rgba="0 1 1 1" />
+		<origin xyz="-0.05 -0.12 -0.15" />
+	</xacro:Joint3d>
+	
+	<xacro:Joint3d node="right_calf" parent="right_thigh">
+		<origin xyz="0.2 0 0" rpy="0 ${0.5*M_PI} 0"/>
+		<cylinder radius="0.1" length="0.4" />
+		<color rgba="0 1 1 1" />
+		<origin xyz="0.4 0 0" />
+	</xacro:Joint3d>
+	
+	<xacro:Joint3d node="left_calf" parent="left_thigh">
+		<origin xyz="0.2 0 0" rpy="0 ${0.5*M_PI} 0"/>
+		<cylinder radius="0.1" length="0.4" />
+		<color rgba="0 1 1 1" />
+		<origin xyz="0.4 0 0" />
+	</xacro:Joint3d>
+
+	<xacro:Joint3d node="right_foot" parent="right_calf">
+		<origin xyz="0.1 0 0" rpy="0 ${0.5*M_PI} 0"/>
+		<box size="0.1 0.1 0.35" />
+		<color rgba="1 0 1 1" />
+		<origin xyz="0.4 0 0" />
+	</xacro:Joint3d>
+	
+	<xacro:Joint3d node="left_foot" parent="left_calf">
+		<origin xyz="0.1 0 0" rpy="0 ${0.5*M_PI} 0"/>
+		<box size="0.1 0.1 0.35" />
+		<color rgba="1 0 1 1" />
+		<origin xyz="0.4 0 0" />
+	</xacro:Joint3d>
+	
+	<xacro:Joint3d node="left_shoulder" parent="upper_body">
+		<origin xyz="0 0 0" rpy="0 ${0.5*M_PI} 0"/>
+		<box size="${shoulder_d} ${shoulder_w} ${shoulder_h}" />
+		<color rgba="0 1 1 1" />
+		<origin xyz="${upper_h - shoulder_h/2} -${shoulder_distance/2} -${upper_d - shoulder_d/4}" />
+	</xacro:Joint3d>
+	
+		<xacro:Joint3d node="right_shoulder" parent="upper_body">
+		<origin xyz="0 0 0" rpy="0 ${0.5*M_PI} 0"/>
+		<box size="${shoulder_d} ${shoulder_w} ${shoulder_h}" />
+		<color rgba="0 1 1 1" />
+		<origin xyz="${upper_h - shoulder_h/2} ${shoulder_distance/2} -${upper_d - shoulder_d/4}" />
+	</xacro:Joint3d>
+		
+	<xacro:Joint3d node="left_upper_arm" parent="left_shoulder">
+		<origin xyz="${upper_arm_length/4} 0 0" rpy="0 ${0.5*M_PI} 0"/>
+		<cylinder radius="${upper_arm_radius}" length="${upper_arm_length}" />
+		<color rgba="1 1 0 1" />
+		<origin xyz="${shoulder_h/2} 0 -${shoulder_d/2}" />
+	</xacro:Joint3d>
+	
+	<xacro:Joint3d node="right_upper_arm" parent="right_shoulder">
+		<origin xyz="${upper_arm_length/4} 0 0" rpy="0 ${0.5*M_PI} 0"/>
+		<cylinder radius="${upper_arm_radius}" length="${upper_arm_length}" />
+		<color rgba="1 1 0 1" />
+		<origin xyz="${shoulder_h/2} 0 -${shoulder_d/2}" />
+	</xacro:Joint3d>
+	
+	<xacro:Joint3d node="left_forearm" parent="left_upper_arm">
+		<origin xyz="${forearm_length/2} 0 0" rpy="0 ${0.5*M_PI} 0"/>
+		<cylinder radius="${forearm_radius}" length="${forearm_length}" />
+		<color rgba="1 0 0 1" />
+		<origin xyz="${3*upper_arm_length/4} 0 0" />
+	</xacro:Joint3d>
+	
+	<xacro:Joint3d node="right_forearm" parent="right_upper_arm">
+		<origin xyz="${forearm_length/2} 0 0" rpy="0 ${0.5*M_PI} 0"/>
+		<cylinder radius="${forearm_radius}" length="${forearm_length}" />
+		<color rgba="1 0 0 1" />
+		<origin xyz="${3*upper_arm_length/4} 0 0" />
+	</xacro:Joint3d>
+	
+	<xacro:Joint3d node="left_hand" parent="left_forearm">
+		<origin xyz="${hand_h/2} 0 0" rpy="0 ${0.5*M_PI} 0"/>
+		<box size="${hand_d} ${hand_w} ${hand_h}" />
+		<color rgba="0 1 0 1" />
+		<origin xyz="${forearm_length} 0 0" />
+	</xacro:Joint3d>
+	
+	<xacro:Joint3d node="right_hand" parent="right_forearm">
+		<origin xyz="${hand_h/2} 0 0" rpy="0 ${0.5*M_PI} 0"/>
+		<box size="${hand_d} ${hand_w} ${hand_h}" />
+		<color rgba="0 1 0 1" />
+		<origin xyz="${forearm_length} 0 0" />
+	</xacro:Joint3d>
+</robot>

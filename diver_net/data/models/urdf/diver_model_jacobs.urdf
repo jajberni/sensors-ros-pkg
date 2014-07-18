@@ -1,0 +1,234 @@
+<?xml version="1.0"?>
+<robot name="diver">
+	
+  <link name="head">
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<mesh filename="package://diver_model/models/head.dae" />
+			</geometry>
+		</visual>
+	</link>
+
+	<link name="torso">
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<mesh filename="package://diver_model/models/torso.dae" />
+			</geometry>
+		</visual>
+	</link>
+	<link name="left_biceps">
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<mesh filename="package://diver_model/models/left_biceps.dae" />
+			</geometry>
+		</visual>
+	</link>
+	<link name="left_forearm">
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<mesh filename="package://diver_model/models/left_forearm.dae" />
+			</geometry>
+		</visual>
+	</link>
+	<link name="left_hand">
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<mesh filename="package://diver_model/models/left_hand.dae" />
+			</geometry>
+		</visual>
+	</link>
+	<link name="left_thigh">
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<mesh filename="package://diver_model/models/left_thigh.dae" />
+			</geometry>
+		</visual>
+	</link>
+	<link name="left_leg">
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<mesh filename="package://diver_model/models/left_leg.dae" />
+			</geometry>
+		</visual>
+	</link>
+	<link name="left_flipper">
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<mesh filename="package://diver_model/models/left_flipper.dae" />
+			</geometry>
+		</visual>
+	</link>
+
+
+	<link name="right_biceps">
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<mesh filename="package://diver_model/models/right_biceps.dae" />
+			</geometry>
+		</visual>
+	</link>
+	<link name="right_forearm">
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<mesh filename="package://diver_model/models/right_forearm.dae" />
+			</geometry>
+		</visual>
+	</link>
+	<link name="right_hand">
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<mesh filename="package://diver_model/models/right_hand.dae" />
+			</geometry>
+		</visual>
+	</link>
+	<link name="right_thigh">
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<mesh filename="package://diver_model/models/right_thigh.dae" />
+			</geometry>
+		</visual>
+	</link>
+	<link name="right_leg">
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<mesh filename="package://diver_model/models/right_leg.dae" />
+			</geometry>
+		</visual>
+	</link>
+	<link name="right_flipper">
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<mesh filename="package://diver_model/models/right_flipper.dae" />
+			</geometry>
+		</visual>
+	</link>
+
+	<joint name="neck_joint" type="revolute">
+		<origin xyz="0.05206 0 0.20930" rpy="0 0 0"/>
+		<parent link="torso"/>
+		<child link="head"/>
+		<axis xyz="0 0 1"/>
+		<limit lower="-1.57" upper="1.57" effort="7" velocity="7"/>
+	</joint>
+	
+	<link name="left_shoulder"/>
+	<joint name="left_shoulder_yaw" type="revolute" >
+		<origin xyz="0.0 0.14526 0.16791" rpy="0 0 0"/>
+		<parent link="torso"/>
+		<child link="left_shoulder"/>
+		<axis xyz="0 0 1"/>
+		<limit lower="-2.57" upper="1.57" effort="7" velocity="7"/>
+	</joint>
+	<joint name="left_shoulder" type="revolute">
+<!--		<origin xyz="0.0 0.14526 0.16791" rpy="0 0 0"/>-->
+		<parent link="left_shoulder"/>
+		<child link="left_biceps"/>
+		<axis xyz="1 0 0"/>
+		<limit lower="-1.57" upper="1.57" effort="7" velocity="7"/>
+	</joint>
+
+	<joint name="left_elbow" type="revolute">
+		<origin xyz="-0.01141 0.289 0.00821" rpy="0 0 0"/>
+		<parent link="left_biceps"/>
+		<child link="left_forearm"/>
+		<axis xyz="1 0 0"/>
+		<limit lower="0" upper="2.7" effort="7" velocity="7"/>
+	</joint>
+	<joint name="left_wrist" type="revolute">
+		<origin xyz="-0.00114 0.27338 0.00258" rpy="0 0 0"/>
+		<parent link="left_forearm"/>
+		<child link="left_hand"/>
+		<axis xyz="0 0 1"/>
+		<limit lower="-1.57" upper="1.57" effort="7" velocity="7"/>
+	</joint>
+	<joint name="left_hip" type="revolute">
+		<origin xyz="0.01420 0.07196 -0.32383" rpy="0 0 0"/>
+		<parent link="torso"/>
+		<child link="left_thigh"/>
+		<axis xyz="0 1 0"/>
+		<limit lower="-2.0" upper="1.0" effort="7" velocity="7"/>
+	</joint>
+	<joint name="left_knee" type="revolute">
+		<origin xyz="-0.01420 0.01734 -0.42255" rpy="0 0 0"/>
+		<parent link="left_thigh"/>
+		<child link="left_leg"/>
+		<axis xyz="0 1 0"/>
+		<limit lower="0.0" upper="2.0" effort="7" velocity="7"/>
+	</joint>
+	<joint name="left_ankle" type="revolute">
+		<origin xyz="0.0 0.01003 -0.486942" rpy="0 0 0"/>
+		<parent link="left_leg"/>
+		<child link="left_flipper"/>
+		<axis xyz="0 1 0"/>
+		<limit lower="0.0" upper="2.0" effort="7" velocity="7"/>
+	</joint>
+
+
+	<link name="right_shoulder"/>
+	<joint name="right_shoulder_roll" type="revolute">
+		<origin xyz="0.0 -0.14526 0.16791" rpy="0 0 0"/>
+		<parent link= "torso"/>
+		<child link = "right_shoulder" />
+		<axis xyz="0 1 0"/>
+		<limit lower="-1" upper="3.14" effort="7" velocity="7" />
+	</joint>
+
+	<joint name="right_shoulder" type="revolute">
+		<origin xyz="0 0 0" rpy="0 0 0"/>
+<!--		<origin xyz="0.0 -0.14526 0.16791" rpy="0 0 0"/> -->
+		<parent link="right_shoulder"/>
+		<child link="right_biceps"/>
+		<axis xyz="1 0 0"/>
+		<limit lower="-1.57" upper="1.57" effort="7" velocity="7"/>
+	</joint>
+
+	<joint name="right_elbow" type="revolute">
+		<origin xyz="-0.01141 -0.289 0.00821" rpy="0 0 0"/>
+		<parent link="right_biceps"/>
+		<child link="right_forearm"/>
+		<axis xyz="1 0 0"/>
+		<limit lower="-2.7" upper="0" effort="7" velocity="7"/>
+	</joint>
+	<joint name="right_wrist" type="revolute">
+		<origin xyz="-0.00114 -0.27338 0.00258" rpy="0 0 0"/>
+		<parent link="right_forearm"/>
+		<child link="right_hand"/>
+		<axis xyz="1 0 0"/>
+		<limit lower="-1.57" upper="1.57" effort="7" velocity="7"/>
+	</joint>
+	<joint name="right_hip" type="revolute">
+		<origin xyz="0.01420 -0.07196 -0.32383" rpy="0 0 0"/>
+		<parent link="torso"/>
+		<child link="right_thigh"/>
+		<axis xyz="0 1 0"/>
+		<limit lower="-2.0" upper="1.0" effort="7" velocity="7"/>
+	</joint>
+	<joint name="right_knee" type="revolute">
+		<origin xyz="-0.01420 -0.01734 -0.42255" rpy="0 0 0"/>
+		<parent link="right_thigh"/>
+		<child link="right_leg"/>
+		<axis xyz="0 1 0"/>
+		<limit lower="0.0" upper="2.0" effort="7" velocity="7"/>
+	</joint>
+	<joint name="right_ankle" type="revolute">
+		<origin xyz="0.0 -0.01003 -0.486942" rpy="0 0 0"/>
+		<parent link="right_leg"/>
+		<child link="right_flipper"/>
+		<axis xyz="0 1 0"/>
+		<limit lower="0.0" upper="2.0" effort="7" velocity="7"/>
+	</joint>
+</robot>
