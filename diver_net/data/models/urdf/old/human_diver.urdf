@@ -1,0 +1,109 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="diver">
+	<link name="local" />
+	
+	 <xacro:macro name="3dJoint" params="node parent *origin *geometry *color">
+	 	<link name="${node}_2" />
+	 	<link name="${node}_1" />
+	 	<link name="${node}">
+		<visual>
+			<origin xyz="0 0 0.1" rpy="0 0 0" />
+			<geometry>
+				<cylinder radius="0.3" length="0.3" />
+			</geometry>
+			<material name="red">
+				<color rgba="1 0 0 1" />
+			</material>
+		</visual>
+		</link>
+		
+		<joint name="${node}_x" type="continuous">
+			<axis xyz="1 0 0" />
+   			<!-- <origin xyz="0 0 0.0" rpy="0 1.5708 1.5708"/> -->
+   			<parent link="${parent}"/>
+   			<child link="${node}_2"/>
+		</joint>
+	
+		<joint name="${node}_y" type="continuous">
+			<axis xyz="0 1 0" />
+   			<parent link="${node}_2"/>
+   			<child link="${node}_1"/>
+		</joint>
+	
+		<joint name="${node}_z" type="continuous">
+			<axis xyz="0 0 1" />
+   			<parent link="${node}_1"/>
+   			<child link="${node}"/>
+		</joint>		
+    </xacro:macro>
+   	
+	<link name="lower_back_2" />
+	<link name="lower_back_1" />
+	<link name="lower_back">
+		<visual>
+			<origin xyz="0 0 0.1" rpy="0 0 0" />
+			<geometry>
+				<cylinder radius="0.3" length="0.3" />
+			</geometry>
+			<material name="red">
+				<color rgba="1 0 0 1" />
+			</material>
+		</visual>
+	</link>
+
+	<link name="upper_body">
+		<visual>
+			<origin xyz="0 0 0.15" rpy="0 0 0" />
+			<geometry>
+				<cylinder radius="0.3" length="0.3" />
+			</geometry>
+			<material name="gray">
+				<color rgba="0 1 0 1" />
+			</material>
+		</visual>
+	</link>
+	
+	<link name="head">
+		<visual>
+			<origin xyz="0 0 0.075" rpy="0 0 0" />
+			<geometry>
+				<sphere radius="0.15" />
+			</geometry>
+		</visual>
+	</link>
+	
+	<joint name="lower_back_x" type="continuous">
+		<axis xyz="1 0 0" />
+   		<!-- <origin xyz="0 0 0.0" rpy="0 1.5708 1.5708"/> -->
+   		<parent link="local"/>
+   		<child link="lower_back_2"/>
+	</joint>
+	
+	<joint name="lower_back_y" type="continuous">
+		<axis xyz="0 1 0" />
+   		<parent link="lower_back_2"/>
+   		<child link="lower_back_1"/>
+	</joint>
+	
+	<joint name="lower_back_z" type="continuous">
+		<axis xyz="0 0 1" />
+   		<parent link="lower_back_1"/>
+   		<child link="lower_back"/>
+	</joint>
+
+	<joint name="upper_body_y" type="revolute">
+		<axis xyz="0 1 0" />
+   		<origin xyz="0 0 0.25"/>
+   		<parent link="lower_back"/>
+   		<child link="upper_body"/>
+   		<limit effort="1000.0" lower="0.0" upper="1.5708" velocity="3.0"/>
+	</joint>
+	
+	<joint name="head_y" type="revolute">
+		<axis xyz="0 1 0" />
+   		<origin xyz="0 0 0.35" />
+   		<parent link="upper_body"/>
+   		<child link="head"/>
+   		<limit effort="1000.0" lower="0.0" upper="1.5708" velocity="3.0"/>
+	</joint>
+</robot>
