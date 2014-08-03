@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
     geometry_msgs 
     roscpp 
     rospy
-    labust_base 
+    labust_navigation
     tf2_ros 
     nodelet 
     auv_msgs 
@@ -94,7 +94,6 @@ add_executable(usbl_sim src/test/usbl_sim.cpp)
 target_link_libraries(usbl-plugs
    ${Boost_SERIALIZATION_LIBRARY}
    ${Boost_THREAD_LIBRARY}
-   labust_navcon
    ${catkin_LIBRARIES}
 )
 
