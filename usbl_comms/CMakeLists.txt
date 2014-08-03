@@ -80,6 +80,13 @@ add_executable(uros_modem src/uros/UROSModem.cpp src/DiverMsg.cpp)
 add_dependencies(usbl_comms ${catkin_EXPORTED_TARGETS})
 # add_dependencies(usbl_comms_node usbl_comms_generate_messages_cpp)
 
+if (DEFINED catkin_EXPORTED_TARGETS)
+ add_dependencies(usbl_comms ${catkin_EXPORTED_TARGETS})
+ add_dependencies(uros_modem ${catkin_EXPORTED_TARGETS})
+ add_dependencies(divermsg_test ${catkin_EXPORTED_TARGETS})
+ add_dependencies(encoding_test ${catkin_EXPORTED_TARGETS})
+endif()
+
 ## Specify libraries to link a library or executable target against
 target_link_libraries(usbl_comms
    ${catkin_LIBRARIES}
